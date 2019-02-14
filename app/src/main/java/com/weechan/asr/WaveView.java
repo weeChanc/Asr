@@ -1,10 +1,12 @@
 package com.weechan.asr;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PathMeasure;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.view.View;
@@ -18,6 +20,8 @@ import java.util.List;
  */
 
 public class WaveView extends View {
+
+    static boolean pause = false;
 
     private List<Short> waves;
 
@@ -52,13 +56,14 @@ public class WaveView extends View {
         return path;
     }
 
+
     public void setPath(Path path) {
         this.path = path;
     }
 
-    public Path setWaves(List<Short> waves,boolean invalidate) {
+    public Path setWaves(List<Short> waves, boolean invalidate) {
 
-        if (waves == null || width == 0 ) {
+        if (waves == null || width == 0) {
             invalidate();
             return null;
         }
@@ -73,15 +78,17 @@ public class WaveView extends View {
             path.lineTo(x, startY + wave * ratio);
             x += lineWidth;
         }
-
+        setPath(path);
         if(invalidate){
-            this.path = path;
             invalidate();
         }
+
         return path;
     }
 
     int width = 0;
+
+    int [] a = new int[0];
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -93,6 +100,7 @@ public class WaveView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
+        if (pause) return;
         if (path != null)
             canvas.drawPath(path, mPaint);
     }

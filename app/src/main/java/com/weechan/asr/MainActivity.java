@@ -2,6 +2,7 @@ package com.weechan.asr;
 
 import android.annotation.SuppressLint;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -13,10 +14,8 @@ import android.widget.PopupWindow;
 
 import com.weechan.asr.utils.AudioRecorder;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.ShortBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -44,6 +43,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
+//        Log.e("MainActivity", NativeUtils.readFile());
 
         initView();
 
@@ -77,8 +79,10 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onPause() {
+
             }
         });
+
     }
 
     private void stopRecord() {
@@ -103,10 +107,24 @@ public class MainActivity extends AppCompatActivity {
         po.setWidth(WRAP_CONTENT);
         po.setHeight(240);
         popupWave = WaveWrap.findViewById(R.id.wave);
-        popupWave.setWaves(all, false);
+        popupWave.setWaves(all, true);
+
+        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
+                switch (newState) {
+                    case RecyclerView.SCROLL_STATE_IDLE:
+                        WaveView.pause = false;
+                        adapter.notifyDataSetChanged();
+                        break;
+                    case RecyclerView.SCROLL_STATE_SETTLING:
+                    case RecyclerView.SCROLL_STATE_DRAGGING:
+                        WaveView.pause = true;
+                        break;
+
+                }
+            }
+        });
 
     }
-
-
-    public native String stringFromJNI();
 }

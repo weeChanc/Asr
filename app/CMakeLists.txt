@@ -5,40 +5,52 @@
 
 cmake_minimum_required(VERSION 3.4.1)
 
-# Creates and names a library, sets it as either STATIC
-# or SHARED, and provides the relative paths to its source code.
-# You can define multiple libraries, and CMake builds them for you.
-# Gradle automatically packages shared libraries with your APK.
+set(C_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp) #一定要加${CMAKE_CURRENT_SOURCE_DIR} 否则跑不通
 
-add_library( # Sets the name of the library.
-        native-lib
+#
+#add_library(native-lib SHARED ${C_DIR}/native-lib.cpp)
+#add_library(android-utils SHARED ${C_DIR}/android-utils.cpp)
 
-        # Sets the library as a shared library.
-        SHARED
+add_library(core SHARED
+        ${C_DIR}/main.cpp
+        ${C_DIR}/core/c/model.cpp
+        ${C_DIR}/core/c/readwav.cpp
+        ${C_DIR}/core/c/reshape.cpp
+        ${C_DIR}/core/c/android-utils.cpp
+        ${C_DIR}/core/c/constant.cpp
+        ${C_DIR}/core/headers/android-utils.h
+        ${C_DIR}/core/headers/constant.h
+        ${C_DIR}/core/headers/model.h
+        ${C_DIR}/core/headers/readwav.h
+        ${C_DIR}/core/headers/reshape.h)
 
-        # Provides a relative path to your source file(s).
-        src/main/cpp/native-lib.cpp)
+#add_library(model SHARED ${C_DIR}/core/c/model.cpp)
+#add_library(readwav SHARED ${C_DIR}/core/c/readwav.cpp)
+#add_library(reshape SHARED ${C_DIR}/core/c/reshape.cpp)
 
-# Searches for a specified prebuilt library and stores the path as a
-# variable. Because CMake includes system libraries in the search path by
-# default, you only need to specify the name of the public NDK library
-# you want to add. CMake verifies that the library exists before
-# completing its build.
+find_library(log-lib log)
+find_library(android android)
 
-find_library( # Sets the name of the path variable.
-        log-lib
+#target_include_directories(native-lib PRIVATE ${C_DIR}/core/headers) # required constant.h
+target_include_directories(core PRIVATE ${C_DIR}/core/headers ${C_DIR}/core/c) # required all file in it
+#target_include_directories(core PRIVATE ${C_DIR}/core/c) # required all file in it
+#target_include_directories(model PRIVATE ${C_DIR}/core/headers) # required model.h and constant.h
+#target_include_directories(readwav PRIVATE ${C_DIR}/core/headers) # required readwav.h
 
-        # Specifies the name of the NDK library that
-        # you want CMake to locate.
-        log)
 
-# Specifies libraries CMake should link to your target library. You
-# can link multiple libraries, such as libraries you define in this
-# build script, prebuilt third-party libraries, or system libraries.
+#target_link_libraries(
+#        android-utils
+#        ${log-lib}
+#        ${android}
+#)
+#
+#target_link_libraries(
+#        native-lib
+#        ${log-lib}
+#        ${android})
 
-target_link_libraries( # Specifies the target library.
-        native-lib
+target_link_libraries(
+        core
+        ${log-lib}
+        ${android})
 
-        # Links the target library to the log library
-        # included in the NDK.
-        ${log-lib})
