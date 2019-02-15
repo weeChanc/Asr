@@ -24,11 +24,6 @@ import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 
 public class MainActivity extends AppCompatActivity {
 
-
-    static {
-        System.loadLibrary("native-lib");
-    }
-
     private RecyclerView recyclerView;
     private MyAdapter adapter;
     private PopupWindow po;

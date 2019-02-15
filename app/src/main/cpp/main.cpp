@@ -302,6 +302,22 @@ Java_com_weechan_asr_Analyze_injectBasePath(
         Constant::ASR_BASE_PATH = jstring2charArray(env, basePath);
     }
     Constant::of = new ofstream(Constant::ASR_BASE_PATH + "/log.txt");
+
+    *Constant::of<< endl <<  sizeof(char);
+    *Constant::of<< endl <<  sizeof(short);
+    *Constant::of<< endl <<  sizeof(int);
+    *Constant::of<< endl <<  sizeof(long);
+    *Constant::of<< endl <<  sizeof(long long);
+    *Constant::of<< endl <<  sizeof(float);
+    *Constant::of<< endl <<  sizeof(double);
+    *Constant::of<< endl <<  sizeof(unsigned char);
+    *Constant::of<< endl <<  sizeof(unsigned short);
+    *Constant::of<< endl <<  sizeof(unsigned int);
+    *Constant::of<< endl <<  sizeof(unsigned long);
+    *Constant::of<< endl <<  sizeof(unsigned long long);
+    *Constant::of<< endl <<  sizeof(float);
+    *Constant::of<< endl <<  sizeof(double);
+
     return (*env).NewStringUTF(Constant::ASR_BASE_PATH.c_str());
 }
 }

@@ -30,6 +30,8 @@ public class App extends Application {
         app = this;
 
 
+        ThreadLocal<String> a = new ThreadLocal<>();
+
         try {
             IOUtils.extraFile(getAssets().open("model.zip"), new File(getFilesDir(), "model"));
             String result = Analyze.injectBasePath(getFilesDir().getAbsolutePath() + "/model");
