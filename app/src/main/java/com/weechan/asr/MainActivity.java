@@ -23,6 +23,14 @@ import android.widget.Toast;
 
 import com.weechan.asr.utils.AudioRecorder;
 
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -49,26 +57,19 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},1);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.RECORD_AUDIO}, 1);
+
 
         initView();
 
         fab.setOnTouchListener((v, event) -> {
             int action = event.getAction();
             if (action == MotionEvent.ACTION_DOWN) {
-//                startRecord();
-                new Thread(()->{
-                    long start =  System.currentTimeMillis();
-                    Analyze.analyze(Environment.getExternalStorageDirectory().getPath() + "/SA1_.wav");
-                    runOnUiThread(()->{
-                        Toast.makeText(this, System.currentTimeMillis() - start + "  ", Toast.LENGTH_SHORT).show();
-                    });
-                }).start();
-
+                startRecord();
             }
 
             if (action == ACTION_UP) {
-//                stopRecord();
+                stopRecord();
             }
 
             return true;
@@ -76,17 +77,33 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private File curFile = null;
+    private BufferedOutputStream out;
+
     private void startRecord() {
         all = new CopyOnWriteArrayList<>();
         po.showAtLocation(findViewById(R.id.container), Gravity.CENTER, 0, 0);
         records.add(new Record(2));
         adapter.notifyDataSetChanged();
         recyclerView.smoothScrollToPosition(records.size() - 1); //一个bug,必须滚下去先,否则新加入的不显示 原因未知
+        curFile = new File(new File(getFilesDir(), "sound-asr"), System.currentTimeMillis() + "_record.wav");
+
+        try {
+            out = new BufferedOutputStream(new FileOutputStream(curFile));
+        } catch (FileNotFoundException e) {
+            Toast.makeText(this, "Record failed!!!", Toast.LENGTH_SHORT).show();
+            return;
+        }
         AudioRecorder.getInstant().startRecord(new AudioRecorder.Listener() {
             @Override
-            public void onDataAvaliable(byte[] data) {
-                all.addAll(AudioRecorder.toShortArray(data, 20));
+            public void onDataAvaliable(byte[] data)  {
+                all.addAll(AudioRecorder.toShortArray(data, 120));
                 popupWave.setWaves(all, true);
+                try {
+                    out.write(data);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
 
             @Override
@@ -98,16 +115,46 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void stopRecord() {
+        try {
+            out.flush();
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         po.dismiss();
         AudioRecorder.getInstant().stop();
         records.get(records.size() - 1).setWaves(all);
-        records.add(new Record("题目: " + (int) (Math.random() * 100), 1));
-        popupWave.setWaves(null, false);
-        adapter.notifyDataSetChanged();
+
+        new Thread(() -> {
+            long time = System.currentTimeMillis();
+            runOnUiThread(() -> {
+                Toast.makeText(this, "开始分析,分析未完成请不要操作", Toast.LENGTH_SHORT).show();
+            });
+            Analyze.analyze(curFile.getPath());
+            runOnUiThread(() -> {
+                Toast.makeText(this, "分析耗时　" + (System.currentTimeMillis() - time), Toast.LENGTH_SHORT).show();
+                StringBuilder result = new StringBuilder();
+                try {
+                    FileInputStream fis = new FileInputStream(new File(getFilesDir(),"output.txt"));
+                    BufferedReader br = new BufferedReader(new InputStreamReader(fis));
+                    String line;
+                    while ((line = br.readLine()) != null ){
+                            result.append(" ").append(line);
+                    }
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                records.add(new Record(result.toString(), 1));
+                popupWave.setWaves(null, false);
+                adapter.notifyDataSetChanged();
+            });
+        }).start();
     }
 
     private void initView() {
-        records.add(new Record("题目: " + (int) (Math.random() * 100), 1));
+
         adapter = new MyAdapter(records);
         fab = findViewById(R.id.fab);
         recyclerView = findViewById(R.id.recyclerView);
@@ -117,26 +164,27 @@ public class MainActivity extends AppCompatActivity {
         View WaveWrap = View.inflate(this, R.layout.popup_audio, null);
         po = new PopupWindow(WaveWrap);
         po.setWidth(WRAP_CONTENT);
-        po.setHeight(240);
+        po.setHeight(320);
         popupWave = WaveWrap.findViewById(R.id.wave);
+        popupWave.setMode(0);
         popupWave.setWaves(all, true);
 
-        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
-                switch (newState) {
-                    case RecyclerView.SCROLL_STATE_IDLE:
-                        WaveView.pause = false;
-                        adapter.notifyDataSetChanged();
-                        break;
-                    case RecyclerView.SCROLL_STATE_SETTLING:
-                    case RecyclerView.SCROLL_STATE_DRAGGING:
-                        WaveView.pause = true;
-                        break;
-
-                }
-            }
-        });
+//        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+//            @Override
+//            public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
+//                switch (newState) {
+//                    case RecyclerView.SCROLL_STATE_IDLE:
+//                        WaveView.pause = false;
+//                        adapter.notifyDataSetChanged();
+//                        break;
+//                    case RecyclerView.SCROLL_STATE_SETTLING:
+//                    case RecyclerView.SCROLL_STATE_DRAGGING:
+//                        WaveView.pause = true;
+//                        break;
+//
+//                }
+//            }
+//        });
 
     }
 }

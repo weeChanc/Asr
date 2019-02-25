@@ -9,6 +9,7 @@ import android.graphics.Path;
 import android.graphics.PathMeasure;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 
 import java.util.List;
@@ -21,17 +22,10 @@ import java.util.List;
 
 public class WaveView extends View {
 
-    static boolean pause = false;
-
-    private List<Short> waves;
-
-    public WaveView(Context context, List<Short> waves) {
-        super(context);
-        this.waves = waves;
-    }
-
-    Paint mPaint;
-    private float lineWidth = 4;
+    private Paint mPaint;
+    private float lineWidth = 3f;
+    private int mode = 1; // normal
+    private final static int LAST_MODE = 0; // display last
 
     public WaveView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -42,8 +36,12 @@ public class WaveView extends View {
         mPaint.setColor(Color.BLACK);
     }
 
-    public List<Short> getWaves() {
-        return waves;
+    public int getMode() {
+        return mode;
+    }
+
+    public void setMode(int mode) {
+        this.mode = mode;
     }
 
     private Path path;
@@ -63,44 +61,59 @@ public class WaveView extends View {
 
     public Path setWaves(List<Short> waves, boolean invalidate) {
 
-        if (waves == null || width == 0) {
+        if (waves == null) {
             invalidate();
             return null;
         }
 
-        lineWidth = (float) ((width + 0.0) / waves.size());
         Path path = new Path();
         float x = 0;
         float ratio = (float) (getHeight() / Math.pow(2, 16));
-        for (Short wave : waves) {
-            float startY = (getHeight() / 2 - wave * ratio);
-            path.moveTo(x, startY);
-            path.lineTo(x, startY + wave * ratio);
-            x += lineWidth;
+
+        if(mode == 0){
+            if(waves.size() > 1200){
+                for(int i = waves.size() -  1200 ; i < waves.size() ; i++ ){
+                    short wave = waves.get(i);
+                    float startY = (getHeight() / 2 - wave * ratio);
+                    path.moveTo(x, startY);
+                    path.lineTo(x, startY + wave * ratio);
+                    x += lineWidth/6;
+                }
+            }else{
+                for (Short wave : waves) {
+                    float startY = (getHeight() / 2 - wave * ratio);
+                    path.moveTo(x, startY);
+                    path.lineTo(x, startY + wave * ratio);
+                    x += lineWidth/6;
+                }
+            }
+        }else{
+            for (Short wave : waves) {
+                float startY = (getHeight() / 2 - wave * ratio);
+                path.moveTo(x, startY);
+                path.lineTo(x, startY + wave * ratio);
+                x += lineWidth/6;
+            }
         }
+
         setPath(path);
         if(invalidate){
             invalidate();
+            setMeasuredDimension((int) x,getHeight());
         }
 
         return path;
     }
 
-    int width = 0;
-
-    int [] a = new int[0];
-
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        width = MeasureSpec.getSize(widthMeasureSpec);
+        setMeasuredDimension(1200 /2, MeasureSpec.getSize(heightMeasureSpec));
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        if (pause) return;
         if (path != null)
             canvas.drawPath(path, mPaint);
     }

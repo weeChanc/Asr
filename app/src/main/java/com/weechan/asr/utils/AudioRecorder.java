@@ -5,6 +5,7 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.util.Log;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.ShortBuffer;
@@ -152,7 +153,7 @@ public class AudioRecorder {
     };
 
     public interface Listener {
-        void onDataAvaliable(byte[] data);
+        void onDataAvaliable(byte[] data) ;
 
         void onPause();
     }

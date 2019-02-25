@@ -604,7 +604,7 @@ Java_com_weechan_asr_Analyze_analyze(JNIEnv *env, jclass klass, jstring jpath) {
     delete[]label;
     int phone_num = newlist.size();
     //把输出写到txt文件中
-    ofstream fileout("./output.txt");
+    ofstream fileout(Constant::ASR_BASE_PATH + "/output.txt");
     for (int i = 0; i < phone_num; i++) {
         fileout << newlist[i] << ',';
         fileout << pointlist[i] << endl;

@@ -31,6 +31,7 @@ add_library(core SHARED
 find_library(log-lib log)
 find_library(android android)
 
+
 #target_include_directories(native-lib PRIVATE ${C_DIR}/core/headers) # required constant.h
 target_include_directories(core PRIVATE ${C_DIR}/core/headers ${C_DIR}/core/c) # required all file in it
 #target_include_directories(core PRIVATE ${C_DIR}/core/c) # required all file in it
