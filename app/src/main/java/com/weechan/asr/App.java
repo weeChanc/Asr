@@ -36,8 +36,6 @@ public class App extends Application {
             IOUtils.extraFile(getAssets().open("model.zip"), new File(getFilesDir(), "model"));
             String result = Analyze.injectBasePath(getFilesDir().getAbsolutePath() + "/model");
             Toast.makeText(app, result + "  " + new File(Environment.getExternalStorageDirectory().getPath() + "/SA1_.wav").exists(), Toast.LENGTH_SHORT).show();
-
-            Analyze.analyze(Environment.getExternalStorageDirectory().getPath() + "/SA1_.wav");
         } catch (IOException e) {
             e.printStackTrace();
         }

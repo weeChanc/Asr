@@ -1,11 +1,11 @@
 #include<iostream>
 #include<fstream>
 #include<complex>
-#include<vector>
-#include<time.h>
 #include"readwav.h"
 #include"model.h"
-#include"reshape.h"
+#include<vector>
+//#include <constant.h>
+
 #include "constant.h"
 
 #include <jni.h>
@@ -13,17 +13,23 @@
 #include "android-utils.h"
 #include <android/log.h>
 
-
 using namespace std;
+
 
 const int filterNum = 26;//若改需要改f[];
 int sampleRate = 16000;
 int maxlen = 100;
 int dim = 39;
 #define Win_Time 0.025//把25ms里的所有点作为一个点分析
-#define Hop_Time 0.01//每隔10ms分一次帧
+#define Hop_Time 0.010//每隔10ms分一次帧
+//#define frameSize 512//补零后的长度
 #define Pi 3.1415927
 int hopStep = Hop_Time * sampleRate;//隔hopStep个样本点分一次帧
+
+extern void reshape(double **mfcc39, int maxlen, int dim, int frameNum, double **x_test);
+
+extern void
+trimming(vector<int> &newlist, vector<int> &copylist, int *dict_out, int frameNum, int hopStep);
 
 
 //1.预加重
@@ -225,7 +231,7 @@ void computeMel(double **mel, int sampleRate, double *FFTSample, int frameNum, i
 }
 
 void writeToFile(int frameNum, int frameSize, double **DCT) {
-    ofstream fileDCT(Constant::ASR_BASE_PATH + "/DCT.dat");
+    ofstream fileDCT("./DCT.dat");
 
     for (int j = 0; j < frameNum; j++)//write DCT
     {
@@ -256,43 +262,234 @@ void MFCC(double *sample, int len, double **mfcc39, int frameNum) {
 
     delete[]Sample;
     delete[]frameSample;
-    //FFTSample[512*frameNum]
-//    double fft_test=FFTSample[256];//257-512为0
 
-//	int frameNum = ceil(double(len) / hopStep);
-//	int frameNum =1+ ceil((double(len)-Win_Time * sampleRate) / hopStep);//计算所有样本点一共有多少帧
-    //numframes = 1 + int(math.ceil((1.0*slen - frame_len)/frame_step))
-
-//    double mel[400][26];
-//    double** mel=new double*[frameNum];
-//    for(int i=0;i<frameNum;i++)
-//    {
-//        mel[i]=new double[filterNum];
-//        for(int j = 0; j < filterNum; j++)
-//    		mel[i][j] = 0;
-//    }
     computeMel(mfcc39, sampleRate, FFTSample, frameNum, frameSize);
     delete[]FFTSample;
 
-    //   double **c[400][26];
-//    double** c=new double*[frameNum];
-//    for(int i=0;i<frameNum;i++)
-//    {
-//        c[i]=new double[filterNum];
-//        for(int j = 0; j < filterNum; j++)
-//    		c[i][j] = 0;
-//    }
-//    for(int i = 0; i < frameNum; i++)
-//    {
-//    	for(int j = 0; j < filterNum; j++)
-//    		c[i][j] = 0;
-//    }
+
     DCT(mfcc39, frameNum);
     //   delete mel;
     //   writeToFile(frameNum, frameSize, mfcc39);
     //return c;
 }
 
+int
+init_weights(int innode, int hidenode, double(**W_Z), double(**U_Z), double(**W_R), double(**U_R),
+             double(**W_H), double(**U_H), double(*B_Z), double(*B_R), double(*B_H),
+             double(**gru_kernel), double(**gru_r_kernel), double(*gru_bias), string path_gru_bias,
+             string path_gru_kernel, string path_gru_r_kernel) {
+    //载入权重
+    ifstream gru_w;//定义读取文件流，相对于程序来说是in
+    gru_w.open(path_gru_kernel);//打开文件
+    for (int i = 0; i < innode; i++) {
+        for (int j = 0; j < hidenode * 3; j++) {
+            gru_w >> gru_kernel[i][j];  //均匀随机分布
+        }
+    }
+    gru_w.close();//读取完成之后关闭文件
+
+    //--------------------------------------------------------------------
+    ifstream gru_r_w;//定义读取文件流，相对于程序来说是in
+    gru_r_w.open(path_gru_r_kernel);//打开文件
+    for (int i = 0; i < hidenode; i++) {
+        for (int j = 0; j < hidenode * 3; j++) {
+            gru_r_w >> gru_r_kernel[i][j];  //均匀随机分布
+        }
+    }
+    gru_r_w.close();//读取完成之后关闭文件
+
+    //-------------------------------------------------------------------------
+    ifstream gru_b;//定义读取文件流，相对于程序来说是in
+    gru_b.open(path_gru_bias);//打开文件
+    for (int i = 0; i < hidenode * 3; i++) {
+        gru_b >> gru_bias[i];
+    }
+    gru_b.close();//读取完成之后关闭文件
+    //--------------------------------------------------------------------
+    //输入对应的门权重初始化
+    for (int i = 0; i < innode; i++) {
+        for (int j = 0; j < hidenode; j++) {
+            W_Z[i][j] = gru_kernel[i][j];
+            W_R[i][j] = gru_kernel[i][j + hidenode];
+            W_H[i][j] = gru_kernel[i][j + hidenode * 2];
+        }
+    }
+
+    //隐藏对应的门权重初始化
+    for (int i = 0; i < hidenode; i++) {
+        for (int j = 0; j < hidenode; j++) {
+            U_Z[i][j] = gru_r_kernel[i][j];
+            U_R[i][j] = gru_r_kernel[i][j + hidenode];
+            U_H[i][j] = gru_r_kernel[i][j + hidenode * 2];
+        }
+    }
+
+    //偏置初始化
+    for (int i = 0; i < hidenode; i++) {
+        B_Z[i] = gru_bias[i];
+        B_R[i] = gru_bias[i + hidenode];
+        B_H[i] = gru_bias[i + hidenode * 2];
+    }
+    return 0;
+}
+
+
+namespace good {
+    int gru_innode = 512;
+    int gru_hidenode = 39;
+    int bi_gru_innode = 39;
+    int bi_gru_hidenode = 256;
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    double **G_W_Z;  //输入的更新门权重
+    double **G_U_Z;  //隐含层的更新门权重
+    double **G_W_R;  //隐含层的重置门权重
+    double **G_U_R;  //隐含层的重置门权重
+    double **G_W_H;  //输入的权重
+    double **G_U_H;  //上个时间步输出的权重
+    double *G_B_Z;
+    double *G_B_R;
+    double *G_B_H;
+    double **gru_kernel;
+    double **gru_r_kernel;
+    double *gru_bias;
+    //---------------------------------
+    double **F_W_Z;  //输入的更新门权重
+    double **F_U_Z;  //隐含层的更新门权重
+    double **F_W_R;  //隐含层的重置门权重
+    double **F_U_R;  //隐含层的重置门权重
+    double **F_W_H;  //输入的权重
+    double **F_U_H;  //上个时间步输出的权重
+    double *F_B_Z;
+    double *F_B_R;
+    double *F_B_H;
+    double **fw_gru_kernel;
+    double **fw_gru_r_kernel;
+    double *fw_gru_bias;
+    //------------------------------------
+    double **B_W_Z;  //输入的更新门权重
+    double **B_U_Z;  //隐含层的更新门权重
+    double **B_W_R;  //隐含层的重置门权重
+    double **B_U_R;  //隐含层的重置门权重
+    double **B_W_H;  //输入的权重
+    double **B_U_H;  //上个时间步输出的权重
+    double *B_B_Z;
+    double *B_B_R;
+    double *B_B_H;
+    double **bw_gru_kernel;
+    double **bw_gru_r_kernel;
+    double *bw_gru_bias;
+}
+
+using namespace good;
+
+void load() {
+    string path_gru_bias = Constant::ASR_BASE_PATH + "/gru_bias.txt";
+    string path_gru_kernel = Constant::ASR_BASE_PATH + "/gru_kernel.txt";
+    string path_gru_r_kernel =Constant::ASR_BASE_PATH +  "/gru_r_kernel.txt";
+    //-----------------------------------------------------------------------------------------------------
+    string path_fw_gru_bias = Constant::ASR_BASE_PATH + "/fw_gru_bias.txt";
+    string path_fw_gru_kernel =Constant::ASR_BASE_PATH +  "/fw_gru_kernel.txt";
+    string path_fw_gru_r_kernel = Constant::ASR_BASE_PATH + "/fw_gru_r_kernel.txt";
+    //---------------------------------------------------------------------------------------------------
+    string path_bw_gru_bias = Constant::ASR_BASE_PATH + "/bw_gru_bias.txt";
+    string path_bw_gru_kernel =Constant::ASR_BASE_PATH +  "/bw_gru_kernel.txt";
+    string path_bw_gru_r_kernel =Constant::ASR_BASE_PATH +  "/bw_gru_r_kernel.txt";
+    //------------------------------------------------------------------------------------------------------
+
+    //+++++++++++++++++++++++++++++++++++++++++++++++
+
+    //初始化各个门的权重矩阵
+    gru_kernel = (double **) malloc(sizeof(double *) * gru_innode);
+    G_W_Z = (double **) malloc(sizeof(double *) * gru_innode);
+    G_W_R = (double **) malloc(sizeof(double *) * gru_innode);
+    G_W_H = (double **) malloc(sizeof(double *) * gru_innode);
+    for (int i = 0; i < gru_innode; i++) {
+        gru_kernel[i] = (double *) malloc(sizeof(double) * 3 * gru_hidenode);
+        G_W_Z[i] = (double *) malloc(sizeof(double) * gru_hidenode);
+        G_W_R[i] = (double *) malloc(sizeof(double) * gru_hidenode);
+        G_W_H[i] = (double *) malloc(sizeof(double) * gru_hidenode);
+    }
+    gru_r_kernel = (double **) malloc(sizeof(double *) * gru_hidenode);
+    G_U_Z = (double **) malloc(sizeof(double *) * gru_hidenode);
+    G_U_R = (double **) malloc(sizeof(double *) * gru_hidenode);
+    G_U_H = (double **) malloc(sizeof(double *) * gru_hidenode);
+    for (int i = 0; i < gru_hidenode; i++) {
+        gru_r_kernel[i] = (double *) malloc(sizeof(double) * 3 * gru_hidenode);
+        G_U_Z[i] = (double *) malloc(sizeof(double) * gru_hidenode);
+        G_U_R[i] = (double *) malloc(sizeof(double) * gru_hidenode);
+        G_U_H[i] = (double *) malloc(sizeof(double) * gru_hidenode);
+    }
+    gru_bias = (double *) malloc(sizeof(double) * 3 * gru_hidenode);
+    G_B_Z = (double *) malloc(sizeof(double) * gru_hidenode);
+    G_B_R = (double *) malloc(sizeof(double) * gru_hidenode);
+    G_B_H = (double *) malloc(sizeof(double) * gru_hidenode);
+    //--------------------------------------------------------------------------------
+    fw_gru_kernel = (double **) malloc(sizeof(double *) * bi_gru_innode);
+    F_W_Z = (double **) malloc(sizeof(double *) * bi_gru_innode);
+    F_W_R = (double **) malloc(sizeof(double *) * bi_gru_innode);
+    F_W_H = (double **) malloc(sizeof(double *) * bi_gru_innode);
+    for (int i = 0; i < bi_gru_innode; i++) {
+        fw_gru_kernel[i] = (double *) malloc(sizeof(double) * 3 * bi_gru_hidenode);
+        F_W_Z[i] = (double *) malloc(sizeof(double) * bi_gru_hidenode);
+        F_W_R[i] = (double *) malloc(sizeof(double) * bi_gru_hidenode);
+        F_W_H[i] = (double *) malloc(sizeof(double) * bi_gru_hidenode);
+    }
+    fw_gru_r_kernel = (double **) malloc(sizeof(double *) * bi_gru_hidenode);
+    F_U_Z = (double **) malloc(sizeof(double *) * bi_gru_hidenode);
+    F_U_R = (double **) malloc(sizeof(double *) * bi_gru_hidenode);
+    F_U_H = (double **) malloc(sizeof(double *) * bi_gru_hidenode);
+    for (int i = 0; i < bi_gru_hidenode; i++) {
+        fw_gru_r_kernel[i] = (double *) malloc(sizeof(double) * 3 * bi_gru_hidenode);
+        F_U_Z[i] = (double *) malloc(sizeof(double) * bi_gru_hidenode);
+        F_U_R[i] = (double *) malloc(sizeof(double) * bi_gru_hidenode);
+        F_U_H[i] = (double *) malloc(sizeof(double) * bi_gru_hidenode);
+    }
+    fw_gru_bias = (double *) malloc(sizeof(double) * 3 * bi_gru_hidenode);
+    F_B_Z = (double *) malloc(sizeof(double) * bi_gru_hidenode);
+    F_B_R = (double *) malloc(sizeof(double) * bi_gru_hidenode);
+    F_B_H = (double *) malloc(sizeof(double) * bi_gru_hidenode);
+    //-------------------------------------------------------------------
+    bw_gru_kernel = (double **) malloc(sizeof(double *) * bi_gru_innode);
+    B_W_Z = (double **) malloc(sizeof(double *) * bi_gru_innode);
+    B_W_R = (double **) malloc(sizeof(double *) * bi_gru_innode);
+    B_W_H = (double **) malloc(sizeof(double *) * bi_gru_innode);
+    for (int i = 0; i < bi_gru_innode; i++) {
+        bw_gru_kernel[i] = (double *) malloc(sizeof(double) * 3 * bi_gru_hidenode);
+        B_W_Z[i] = (double *) malloc(sizeof(double) * bi_gru_hidenode);
+        B_W_R[i] = (double *) malloc(sizeof(double) * bi_gru_hidenode);
+        B_W_H[i] = (double *) malloc(sizeof(double) * bi_gru_hidenode);
+    }
+    bw_gru_r_kernel = (double **) malloc(sizeof(double *) * bi_gru_hidenode);
+    B_U_Z = (double **) malloc(sizeof(double *) * bi_gru_hidenode);
+    B_U_R = (double **) malloc(sizeof(double *) * bi_gru_hidenode);
+    B_U_H = (double **) malloc(sizeof(double *) * bi_gru_hidenode);
+    for (int i = 0; i < bi_gru_hidenode; i++) {
+        bw_gru_r_kernel[i] = (double *) malloc(sizeof(double) * 3 * bi_gru_hidenode);
+        B_U_Z[i] = (double *) malloc(sizeof(double) * bi_gru_hidenode);
+        B_U_R[i] = (double *) malloc(sizeof(double) * bi_gru_hidenode);
+        B_U_H[i] = (double *) malloc(sizeof(double) * bi_gru_hidenode);
+    }
+    bw_gru_bias = (double *) malloc(sizeof(double) * 3 * bi_gru_hidenode);
+    B_B_Z = (double *) malloc(sizeof(double) * bi_gru_hidenode);
+    B_B_R = (double *) malloc(sizeof(double) * bi_gru_hidenode);
+    B_B_H = (double *) malloc(sizeof(double) * bi_gru_hidenode);
+
+    //初始化权重
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    init_weights(gru_innode, gru_hidenode, G_W_Z, G_U_Z, G_W_R, G_U_R, G_W_H, G_U_H, G_B_Z, G_B_R,
+                 G_B_H, gru_kernel, gru_r_kernel, gru_bias, path_gru_bias, path_gru_kernel,
+                 path_gru_r_kernel);
+    init_weights(bi_gru_innode, bi_gru_hidenode, F_W_Z, F_U_Z, F_W_R, F_U_R, F_W_H, F_U_H, F_B_Z,
+                 F_B_R, F_B_H, fw_gru_kernel, fw_gru_r_kernel, fw_gru_bias, path_fw_gru_bias,
+                 path_fw_gru_kernel, path_fw_gru_r_kernel);
+    init_weights(bi_gru_innode, bi_gru_hidenode, B_W_Z, B_U_Z, B_W_R, B_U_R, B_W_H, B_U_H, B_B_Z,
+                 B_B_R, B_B_H, bw_gru_kernel, bw_gru_r_kernel, bw_gru_bias, path_bw_gru_bias,
+                 path_bw_gru_kernel, path_bw_gru_r_kernel);
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    //main函数到这为载入网络权重
+
+}
 
 extern "C" {
 JNIEXPORT jstring JNICALL
@@ -302,22 +499,23 @@ Java_com_weechan_asr_Analyze_injectBasePath(
         Constant::ASR_BASE_PATH = jstring2charArray(env, basePath);
     }
     Constant::of = new ofstream(Constant::ASR_BASE_PATH + "/log.txt");
+//
+//    *Constant::of << endl << sizeof(char);
+//    *Constant::of << endl << sizeof(short);
+//    *Constant::of << endl << sizeof(int);
+//    *Constant::of << endl << sizeof(long);
+//    *Constant::of << endl << sizeof(long long);
+//    *Constant::of << endl << sizeof(float);
+//    *Constant::of << endl << sizeof(double);
+//    *Constant::of << endl << sizeof(unsigned char);
+//    *Constant::of << endl << sizeof(unsigned short);
+//    *Constant::of << endl << sizeof(unsigned int);
+//    *Constant::of << endl << sizeof(unsigned long);
+//    *Constant::of << endl << sizeof(unsigned long long);
+//    *Constant::of << endl << sizeof(float);
+//    *Constant::of << endl << sizeof(double);
 
-    *Constant::of<< endl <<  sizeof(char);
-    *Constant::of<< endl <<  sizeof(short);
-    *Constant::of<< endl <<  sizeof(int);
-    *Constant::of<< endl <<  sizeof(long);
-    *Constant::of<< endl <<  sizeof(long long);
-    *Constant::of<< endl <<  sizeof(float);
-    *Constant::of<< endl <<  sizeof(double);
-    *Constant::of<< endl <<  sizeof(unsigned char);
-    *Constant::of<< endl <<  sizeof(unsigned short);
-    *Constant::of<< endl <<  sizeof(unsigned int);
-    *Constant::of<< endl <<  sizeof(unsigned long);
-    *Constant::of<< endl <<  sizeof(unsigned long long);
-    *Constant::of<< endl <<  sizeof(float);
-    *Constant::of<< endl <<  sizeof(double);
-
+    load();
     return (*env).NewStringUTF(Constant::ASR_BASE_PATH.c_str());
 }
 }
@@ -326,17 +524,19 @@ Java_com_weechan_asr_Analyze_injectBasePath(
 extern "C" {
 JNIEXPORT void JNICALL
 Java_com_weechan_asr_Analyze_analyze(JNIEnv *env, jclass klass, jstring jpath) {
+
+
     //输入WAV文件地址
-    string path = jstring2charArray(env, jpath);
+    string path = jstring2charArray(env,jpath);
     unsigned long wavdata_l;
     double *sample = NULL;
+
+    *Constant::of << "Test" << endl;
     sample = readwav(path, &wavdata_l);
-    *Constant::of << path << endl << flush;
-    *Constant::of << "wavdata_l: " << wavdata_l << endl << flush;
+
     int frameNum = 1 + ceil((double(wavdata_l) - Win_Time * sampleRate) / hopStep);//计算所有样本点一共有多少帧
     int frame_new = (ceil(frameNum / (maxlen / 2 * 1.0)) - 1) * maxlen;
     double **mfcc39 = new double *[frameNum];
-
     for (int i = 0; i < frameNum; i++) {
         mfcc39[i] = new double[39];
         for (int j = 0; j < 39; j++)
@@ -346,7 +546,7 @@ Java_com_weechan_asr_Analyze_analyze(JNIEnv *env, jclass klass, jstring jpath) {
     clock_t startTime = clock();
     MFCC(sample, wavdata_l, mfcc39, frameNum);
     clock_t endTime = clock();
-    cout << "time is : " << endTime - startTime << "ms" << endl;
+    cout << "MFCC运行时间为：:" << endTime - startTime << "ms" << endl;
     //741ms
 
     delete[]sample;
@@ -370,7 +570,19 @@ Java_com_weechan_asr_Analyze_analyze(JNIEnv *env, jclass klass, jstring jpath) {
     //==========================================
     int *label = new int[frameNum];
 
-    label = model(xtest, frameNum, frame_new, label);
+    //前向计算部分
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    label = model(xtest, frameNum, frame_new, label, G_W_Z, G_U_Z, G_W_R, G_U_R, G_W_H, G_U_H,
+                  G_B_Z,
+                  G_B_R, G_B_H, F_W_Z, F_U_Z, F_W_R, F_U_R, F_W_H, F_U_H, F_B_Z, F_B_R, F_B_H,
+                  B_W_Z,
+                  B_U_Z, B_W_R, B_U_R, B_W_H, B_U_H, B_B_Z, B_B_R, B_B_H, gru_kernel, gru_r_kernel,
+                  gru_bias,
+                  fw_gru_kernel, fw_gru_r_kernel, fw_gru_bias, bw_gru_kernel, bw_gru_r_kernel,
+                  bw_gru_bias
+    );
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
     //释放
     for (int i = 0; i < test_num; i++) {
         delete[] xtest[i];
@@ -392,7 +604,7 @@ Java_com_weechan_asr_Analyze_analyze(JNIEnv *env, jclass klass, jstring jpath) {
     delete[]label;
     int phone_num = newlist.size();
     //把输出写到txt文件中
-    ofstream fileout(Constant::ASR_BASE_PATH + "/output.txt");
+    ofstream fileout("./output.txt");
     for (int i = 0; i < phone_num; i++) {
         fileout << newlist[i] << ',';
         fileout << pointlist[i] << endl;
@@ -402,9 +614,11 @@ Java_com_weechan_asr_Analyze_analyze(JNIEnv *env, jclass klass, jstring jpath) {
     newlist.clear();
     pointlist.clear();
     //10919ms
+
 }
 
 }
+
 
 
 

@@ -1,9 +1,17 @@
 package com.weechan.asr;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Service;
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -11,6 +19,7 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.PopupWindow;
+import android.widget.Toast;
 
 import com.weechan.asr.utils.AudioRecorder;
 
@@ -33,25 +42,33 @@ public class MainActivity extends AppCompatActivity {
     private List<Record> records = new ArrayList<>();
     private List<Short> all = new CopyOnWriteArrayList<>();
 
+
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
-//        Log.e("MainActivity", NativeUtils.readFile());
+        ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},1);
 
         initView();
 
         fab.setOnTouchListener((v, event) -> {
             int action = event.getAction();
             if (action == MotionEvent.ACTION_DOWN) {
-                startRecord();
+//                startRecord();
+                new Thread(()->{
+                    long start =  System.currentTimeMillis();
+                    Analyze.analyze(Environment.getExternalStorageDirectory().getPath() + "/SA1_.wav");
+                    runOnUiThread(()->{
+                        Toast.makeText(this, System.currentTimeMillis() - start + "  ", Toast.LENGTH_SHORT).show();
+                    });
+                }).start();
+
             }
 
             if (action == ACTION_UP) {
-                stopRecord();
+//                stopRecord();
             }
 
             return true;
