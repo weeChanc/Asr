@@ -86,17 +86,19 @@ public class MainActivity extends AppCompatActivity {
         records.add(new Record(2));
         adapter.notifyDataSetChanged();
         recyclerView.smoothScrollToPosition(records.size() - 1); //一个bug,必须滚下去先,否则新加入的不显示 原因未知
-        curFile = new File(new File(getFilesDir(), "sound-asr"), System.currentTimeMillis() + "_record.wav");
+        curFile = new File(new File(getFilesDir(), "sound-asr"), System.currentTimeMillis() + "_record.pcm");
 
         try {
+            curFile.createNewFile();
             out = new BufferedOutputStream(new FileOutputStream(curFile));
-        } catch (FileNotFoundException e) {
-            Toast.makeText(this, "Record failed!!!", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Record failed!!!" + e.getMessage(), Toast.LENGTH_SHORT).show();
             return;
         }
         AudioRecorder.getInstant().startRecord(new AudioRecorder.Listener() {
             @Override
-            public void onDataAvaliable(byte[] data)  {
+            public void onDataAvaliable(byte[] data) {
                 all.addAll(AudioRecorder.toShortArray(data, 120));
                 popupWave.setWaves(all, true);
                 try {
@@ -130,16 +132,19 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 Toast.makeText(this, "开始分析,分析未完成请不要操作", Toast.LENGTH_SHORT).show();
             });
-            Analyze.analyze(curFile.getPath());
+            File outFile = new File(curFile.getAbsolutePath() + ".wav");
+            AudioRecorder.convertPcmToWav(curFile.getAbsolutePath(), outFile.getAbsolutePath(), 16000, 1,   16);
+            Analyze.analyze(Environment.getExternalStorageDirectory().getPath() + "/tt.wav");
             runOnUiThread(() -> {
                 Toast.makeText(this, "分析耗时　" + (System.currentTimeMillis() - time), Toast.LENGTH_SHORT).show();
                 StringBuilder result = new StringBuilder();
                 try {
-                    FileInputStream fis = new FileInputStream(new File(getFilesDir(),"output.txt"));
+                    FileInputStream fis = new FileInputStream(new File(getFilesDir()+"/model", "output.txt"));
                     BufferedReader br = new BufferedReader(new InputStreamReader(fis));
                     String line;
-                    while ((line = br.readLine()) != null ){
-                            result.append(" ").append(line);
+                    while ((line = br.readLine()) != null) {
+                        System.out.println(line);
+                        result.append(" ").append(line);
                     }
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();

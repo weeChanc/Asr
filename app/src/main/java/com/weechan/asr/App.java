@@ -35,6 +35,7 @@ public class App extends Application {
         try {
             IOUtils.extraFile(getAssets().open("model.zip"), new File(getFilesDir(), "model"));
             String result = Analyze.injectBasePath(getFilesDir().getAbsolutePath() + "/model");
+            new File(getFilesDir(), "sound-asr").mkdir();
             Toast.makeText(app, result + "  " + new File(Environment.getExternalStorageDirectory().getPath() + "/SA1_.wav").exists(), Toast.LENGTH_SHORT).show();
         } catch (IOException e) {
             e.printStackTrace();

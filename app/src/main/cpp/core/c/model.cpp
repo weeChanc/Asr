@@ -285,9 +285,9 @@ int *model(double (**input_data),int fram_old,int fram_new,int (*label),double(*
 	free(out2);
 	free(out);
 	free(biout);
-	release_weights(gru_innode, gru_hidenode,G_W_Z, G_U_Z, G_W_R, G_U_R, G_W_H, G_U_H, G_B_Z, G_B_R, G_B_H,gru_kernel,gru_r_kernel,gru_bias);
-	release_weights(bi_gru_innode, bi_gru_hidenode, F_W_Z, F_U_Z, F_W_R, F_U_R, F_W_H, F_U_H, F_B_Z, F_B_R, F_B_H, fw_gru_kernel,fw_gru_r_kernel,fw_gru_bias);
-	release_weights(bi_gru_innode, bi_gru_hidenode, B_W_Z, B_U_Z, B_W_R, B_U_R, B_W_H, B_U_H, B_B_Z, B_B_R, B_B_H, bw_gru_kernel, bw_gru_r_kernel, bw_gru_bias);
+//	release_weights(gru_innode, gru_hidenode,G_W_Z, G_U_Z, G_W_R, G_U_R, G_W_H, G_U_H, G_B_Z, G_B_R, G_B_H,gru_kernel,gru_r_kernel,gru_bias);
+//	release_weights(bi_gru_innode, bi_gru_hidenode, F_W_Z, F_U_Z, F_W_R, F_U_R, F_W_H, F_U_H, F_B_Z, F_B_R, F_B_H, fw_gru_kernel,fw_gru_r_kernel,fw_gru_bias);
+//	release_weights(bi_gru_innode, bi_gru_hidenode, B_W_Z, B_U_Z, B_W_R, B_U_R, B_W_H, B_U_H, B_B_Z, B_B_R, B_B_H, bw_gru_kernel, bw_gru_r_kernel, bw_gru_bias);
 
 	//getchar();
     clock_t mode_endTime=clock();

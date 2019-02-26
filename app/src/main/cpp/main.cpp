@@ -389,7 +389,7 @@ void load() {
     //-----------------------------------------------------------------------------------------------------
     string path_fw_gru_bias = Constant::ASR_BASE_PATH + "/fw_gru_bias.txt";
     string path_fw_gru_kernel =Constant::ASR_BASE_PATH +  "/fw_gru_kernel.txt";
-    string path_fw_gru_r_kernel = Constant::ASR_BASE_PATH + "/fw_gru_r_kernel.txt";
+    string path_fw_gru_r_kernel = Constant::ASR_BASE_PATH + "   /fw_gru_r_kernel.txt";
     //---------------------------------------------------------------------------------------------------
     string path_bw_gru_bias = Constant::ASR_BASE_PATH + "/bw_gru_bias.txt";
     string path_bw_gru_kernel =Constant::ASR_BASE_PATH +  "/bw_gru_kernel.txt";
@@ -531,22 +531,24 @@ Java_com_weechan_asr_Analyze_analyze(JNIEnv *env, jclass klass, jstring jpath) {
     unsigned long wavdata_l;
     double *sample = NULL;
 
-    *Constant::of << "Test" << endl;
+    *Constant::of << "Test2" << path  << endl;
     sample = readwav(path, &wavdata_l);
 
     int frameNum = 1 + ceil((double(wavdata_l) - Win_Time * sampleRate) / hopStep);//计算所有样本点一共有多少帧
     int frame_new = (ceil(frameNum / (maxlen / 2 * 1.0)) - 1) * maxlen;
+    *Constant::of << "Test3" << wavdata_l << endl;
     double **mfcc39 = new double *[frameNum];
     for (int i = 0; i < frameNum; i++) {
         mfcc39[i] = new double[39];
         for (int j = 0; j < 39; j++)
             mfcc39[i][j] = 0;
     }
+    *Constant::of << "Test4" << endl;
 //9ms
     clock_t startTime = clock();
     MFCC(sample, wavdata_l, mfcc39, frameNum);
     clock_t endTime = clock();
-    cout << "MFCC运行时间为：:" << endTime - startTime << "ms" << endl;
+    *Constant::of << "MFCC运行时间为：:" << endTime - startTime << "ms" << endl;
     //741ms
 
     delete[]sample;
@@ -591,7 +593,7 @@ Java_com_weechan_asr_Analyze_analyze(JNIEnv *env, jclass klass, jstring jpath) {
 
     //10175ms
     for (int i = 0; i < 30; i++) {
-        cout << "第" << i + 1 << "帧:  " << label[i] << '\n';
+        *Constant::of << "第" << i + 1 << "帧:  " << label[i] << '\n';
     }
     //=================================
     cout << wavdata_l << endl;
