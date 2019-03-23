@@ -3,6 +3,7 @@ package com.weechan.asr;
 import android.graphics.BitmapFactory;
 import android.graphics.Path;
 import android.graphics.drawable.BitmapDrawable;
+import android.util.ArrayMap;
 
 import java.util.List;
 
@@ -13,10 +14,18 @@ import java.util.List;
  */
 
 public class Record {
-    private String sentence;
-    private int type ;
+
     private List<Short> waves;
     private Path cache;
+    private PHN phn;
+
+    public PHN getPhn() {
+        return phn;
+    }
+
+    public void setPhn(PHN phn) {
+        this.phn = phn;
+    }
 
     public Path getCache() {
         return cache;
@@ -26,30 +35,6 @@ public class Record {
         this.cache = cache;
     }
 
-    public Record(String sentence, int type) {
-        this.sentence = sentence;
-        this.type = type;
-    }
-
-    public Record(int type) {
-        this.type = type;
-    }
-
-    public String getSentence() {
-        return sentence;
-    }
-
-    public void setSentence(String sentence) {
-        this.sentence = sentence;
-    }
-
-    public int getType() {
-        return type;
-    }
-
-    public void setType(int type) {
-        this.type = type;
-    }
 
     public List<Short> getWaves() {
         return waves;

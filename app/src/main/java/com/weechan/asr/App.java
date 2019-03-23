@@ -12,6 +12,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -28,18 +29,6 @@ public class App extends Application {
     public void onCreate() {
         super.onCreate();
         app = this;
-
-
-        ThreadLocal<String> a = new ThreadLocal<>();
-
-        try {
-            IOUtils.extraFile(getAssets().open("model.zip"), new File(getFilesDir(), "model"));
-            String result = Analyze.injectBasePath(getFilesDir().getAbsolutePath() + "/model");
-            new File(getFilesDir(), "sound-asr").mkdir();
-            Toast.makeText(app, result + "  " + new File(Environment.getExternalStorageDirectory().getPath() + "/SA1_.wav").exists(), Toast.LENGTH_SHORT).show();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
 

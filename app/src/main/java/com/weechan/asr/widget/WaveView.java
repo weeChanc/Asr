@@ -1,15 +1,13 @@
-package com.weechan.asr;
+package com.weechan.asr.widget;
 
-import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.PathMeasure;
-import android.support.annotation.Nullable;
+
+import androidx.annotation.Nullable;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.View;
 
 import java.util.List;
@@ -107,7 +105,32 @@ public class WaveView extends View {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        setMeasuredDimension(1200 /2, MeasureSpec.getSize(heightMeasureSpec));
+        int modelW = MeasureSpec.getMode(widthMeasureSpec);
+        int modelH = MeasureSpec.getMode(heightMeasureSpec);
+        int h = MeasureSpec.getSize(heightMeasureSpec);
+        int w = MeasureSpec.getSize(widthMeasureSpec);
+
+        if (modelH == MeasureSpec.AT_MOST) {
+            h = dp2px(84);
+        }
+
+        if (modelW == MeasureSpec.AT_MOST) {
+            View view = (View) getParent();
+            if (view != null) {
+                w = view.getMeasuredWidth();
+            } else {
+                w = dp2px(240);
+            }
+        }
+
+        setMeasuredDimension(w, h);
+
+//        super.onMeasure(widthMeasureSpec,heightMeasureSpec);
+    }
+
+    private int dp2px(final float dpValue) {
+        final float scale = this.getContext().getResources().getDisplayMetrics().density;
+        return (int) (dpValue * scale + 0.5f);
     }
 
     @Override

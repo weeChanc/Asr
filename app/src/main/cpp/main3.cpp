@@ -18,21 +18,21 @@
 
 using namespace std;
 
-const int filterNum = 26;//Èô¸ÄÐèÒª¸Äf[];
+const int filterNum = 26;//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½f[];
 int sampleRate = 16000;
 int maxlen = 100;
 int dim = 39;
-#define Win_Time 0.025//°Ñ25msÀïµÄËùÓÐµã×÷ÎªÒ»¸öµã·ÖÎö
-#define Hop_Time 0.01//Ã¿¸ô10ms·ÖÒ»´ÎÖ¡
+#define Win_Time 0.025//ï¿½ï¿½25msï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ðµï¿½ï¿½ï¿½ÎªÒ»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+#define Hop_Time 0.01//Ã¿ï¿½ï¿½10msï¿½ï¿½Ò»ï¿½ï¿½Ö¡
 #define Pi 3.1415927
-int hopStep = Hop_Time * sampleRate;//¸ôhopStep¸öÑù±¾µã·ÖÒ»´ÎÖ¡
+int hopStep = Hop_Time * sampleRate;//ï¿½ï¿½hopStepï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Ö¡
 
 
-//1.Ô¤¼ÓÖØ
+//1.Ô¤ï¿½ï¿½ï¿½ï¿½
 void pre_emphasizing(double *sample, int len, double factor, double *Sample) {
     Sample[0] = sample[0];
     for (int i = 1; i < len; i++) {
-        //Ô¤¼ÓÖØ¹ý³Ì
+        //Ô¤ï¿½ï¿½ï¿½Ø¹ï¿½ï¿½ï¿½
         Sample[i] = sample[i] - factor * sample[i - 1];
     }
 }
@@ -43,10 +43,10 @@ void Hamming(double *hamWin, int hamWinSize) {
     }
 }
 
-//¼ÆËãÃ¿Ò»Ö¡µÄ¹¦ÂÊÆ×
+//ï¿½ï¿½ï¿½ï¿½Ã¿Ò»Ö¡ï¿½Ä¹ï¿½ï¿½ï¿½ï¿½ï¿½
 void mfccFFT(double *frameSample, double *FFTSample, int frameSize, int pos) {
-    //¶Ô·ÖÖ¡¼Ó´°ºóµÄ¸÷Ö¡ÐÅºÅ½øÐÐFFT±ä»»µÃµ½¸÷Ö¡µÄÆµÆ×
-    //²¢¶ÔÓïÒôÐÅºÅµÄÆµÆ×È¡Ä£Æ½·½µÃµ½ÓïÒôÐÅºÅµÄ¹¦ÂÊÆ×
+    //ï¿½Ô·ï¿½Ö¡ï¿½Ó´ï¿½ï¿½ï¿½Ä¸ï¿½Ö¡ï¿½ÅºÅ½ï¿½ï¿½ï¿½FFTï¿½ä»»ï¿½Ãµï¿½ï¿½ï¿½Ö¡ï¿½ï¿½Æµï¿½ï¿½
+    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÅºÅµï¿½Æµï¿½ï¿½È¡Ä£Æ½ï¿½ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÅºÅµÄ¹ï¿½ï¿½ï¿½ï¿½ï¿½
     double dataR[frameSize];
     double dataI[frameSize];
     for (int i = 0; i < frameSize; i++) {
@@ -117,21 +117,21 @@ void mfccFFT(double *frameSample, double *FFTSample, int frameSize, int pos) {
 
 }
 
-//²ÎÊýËµÃ÷£ºframeSampleÎª´¦ÀíÖ®ºóµÄÊý×é£¬SampleÎª¶ÔÑù±¾½øÐÐÔ¤¼ÓÖØÖ®ºóµÄÊý×é
-//          lenÎªSampleµÄ³¤¶È£¬frameSizeÎªÃ¿Ö¡µÄÑù±¾µã¸öÊý£¬frameSampleLenÎª´¦ÀíÖ®ºóµÄ³¤¶È
+//ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½frameSampleÎªï¿½ï¿½ï¿½ï¿½Ö®ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é£¬SampleÎªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¤ï¿½ï¿½ï¿½ï¿½Ö®ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//          lenÎªSampleï¿½Ä³ï¿½ï¿½È£ï¿½frameSizeÎªÃ¿Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½frameSampleLenÎªï¿½ï¿½ï¿½ï¿½Ö®ï¿½ï¿½Ä³ï¿½ï¿½ï¿½
 double *mfccFrame(double *frameSample, double *Sample, int *len, int frameSize, int &frameSampleLen,
                   int frameNum) {
     double *hamWin;
     int hamWinSize = sampleRate * Win_Time;//16000*0.025
     hamWin = new double[hamWinSize];
-    Hamming(hamWin, hamWinSize);//¼ÆËãhamming´°
+    Hamming(hamWin, hamWinSize);//ï¿½ï¿½ï¿½ï¿½hammingï¿½ï¿½
 
 //	int hopStep = Hop_Time * sampleRate;
-//    int frameNum = 1+ceil((double(*len)-400)/ hopStep);//¼ÆËãÒ»¹²»áÓÐ¶àÉÙ
-//    int frameNum00 = ceil(double(*len) / hopStep);//¼ÆËãÒ»¹²»áÓÐ¶àÉÙÖ¡
+//    int frameNum = 1+ceil((double(*len)-400)/ hopStep);//ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½
+//    int frameNum00 = ceil(double(*len) / hopStep);//ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½Ö¡
     int frameNum00 = frameNum;
 
-    frameSampleLen = frameNum00 * frameSize;//¾­¹ý´¦ÀíÖ®ºóµÄ³¤¶È
+    frameSampleLen = frameNum00 * frameSize;//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö®ï¿½ï¿½Ä³ï¿½ï¿½ï¿½
     frameSample = new double[frameSampleLen];
     for (int i = 0; i < frameSampleLen; i++)
         frameSample[i] = 0;
@@ -139,13 +139,13 @@ double *mfccFrame(double *frameSample, double *Sample, int *len, int frameSize, 
     double *FFTSample = new double[frameSampleLen];
     for (int i = 0; i < frameSampleLen; i++)
         FFTSample[i] = 0;
-    for (int i = 0; i < frameNum00; i++)//·ÖÖ¡
+    for (int i = 0; i < frameNum00; i++)//ï¿½ï¿½Ö¡
     {
         for (int j = 0; j < frameSize; j++) {
             if (j < hamWinSize && i * hopStep + j < *len) {
                 frameSample[i * frameSize + j] = Sample[i * hopStep + j] * hamWin[j];
             } else
-                frameSample[i * frameSize + j] = 0;//²¹0
+                frameSample[i * frameSize + j] = 0;//ï¿½ï¿½0
         }
 
         mfccFFT(frameSample, FFTSample, frameSize, i * frameSize);
@@ -189,7 +189,7 @@ void computeMel(double **mel, int sampleRate, double *FFTSample, int frameNum, i
                                169.0, 188.0, 209.0, 231.0, 256.0};
 
 
-    //¼ÆËã³öÃ¿¸öÈý½ÇÂË²¨Æ÷µÄÊä³ö: ¶ÔÃ¿Ò»Ö¡½øÐÐ´¦Àí
+    //ï¿½ï¿½ï¿½ï¿½ï¿½Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½: ï¿½ï¿½Ã¿Ò»Ö¡ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½
     for (int i = 0; i < frameNum; i++) {
         for (int j = 1; j <= filterNum; j++) {
             double temp = 0;
@@ -217,7 +217,7 @@ void computeMel(double **mel, int sampleRate, double *FFTSample, int frameNum, i
 //    for(int i = 0; i <= filterNum; i++)
 //		fileMel << mel[0][i] << endl;
 
-    //È¡¶ÔÊý
+    //È¡ï¿½ï¿½ï¿½ï¿½
     for (int i = 0; i < frameNum; i++) {
         for (int j = 0; j < filterNum; j++) {
             if (mel[i][j + 13] <= 0.00000000001 || mel[i][j + 13] >= 0.00000000001)
@@ -240,20 +240,20 @@ void writeToFile(int frameNum, int frameSize, double **DCT) {
 //MFCC
 void MFCC(double *sample, int len, double **mfcc39, int frameNum) {
 
-    double factor = 0.97;//Ô¤¼ÓÖØ²ÎÊý
+    double factor = 0.97;//Ô¤ï¿½ï¿½ï¿½Ø²ï¿½ï¿½ï¿½
     double *Sample = new double[len];
-    //1.Ô¤¼ÓÖØ
+    //1.Ô¤ï¿½ï¿½ï¿½ï¿½
     pre_emphasizing(sample, len, factor, Sample);
     //1ms
 
-    //Sample[len],ÏàµÈ
+    //Sample[len],ï¿½ï¿½ï¿½
 //    double yujz=Sample[10];
-    //¼ÆËã³öÃ¿Ö¡ÓÐ¶àÉÙ¸öµã£¬È»ºóËã³ö×î½Ó½üµãµÄ¸öÊýµÄ2^k£¬Ê¹µÃÃ¿Ö¡µÄµãµÄ¸öÊýÎª2^k£¬ÒÔ±ã½øÐÐ²¹0
+    //ï¿½ï¿½ï¿½ï¿½ï¿½Ã¿Ö¡ï¿½Ð¶ï¿½ï¿½Ù¸ï¿½ï¿½ã£¬È»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó½ï¿½ï¿½ï¿½Ä¸ï¿½ï¿½ï¿½ï¿½ï¿½2^kï¿½ï¿½Ê¹ï¿½ï¿½Ã¿Ö¡ï¿½Äµï¿½Ä¸ï¿½ï¿½ï¿½Îª2^kï¿½ï¿½ï¿½Ô±ï¿½ï¿½ï¿½Ð²ï¿½0
     int frameSize = (int) pow(2, ceil(log(Win_Time * sampleRate) / log(2.0)));
     double *frameSample = NULL, *FFTSample = NULL;
     int frameSampleLen;
 
-    //·ÖÖ¡¡¢¼Ó´°¡¢¹¦ÂÊÆ×
+    //ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½Ó´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     FFTSample = mfccFrame(frameSample, Sample, &len, frameSize, frameSampleLen, frameNum);
 
     delete[]Sample;
@@ -262,7 +262,7 @@ void MFCC(double *sample, int len, double **mfcc39, int frameNum) {
 //    double fft_test=FFTSample[256];//257-512Îª0
 
 //	int frameNum = ceil(double(len) / hopStep);
-//	int frameNum =1+ ceil((double(len)-Win_Time * sampleRate) / hopStep);//¼ÆËãËùÓÐÑù±¾µãÒ»¹²ÓÐ¶àÉÙÖ¡
+//	int frameNum =1+ ceil((double(len)-Win_Time * sampleRate) / hopStep);//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½Ö¡
     //numframes = 1 + int(math.ceil((1.0*slen - frame_len)/frame_step))
 
 //    double mel[400][26];
@@ -303,7 +303,7 @@ Java_com_weechan_asr_Analyze_injectBasePath(
     if (Constant::ASR_BASE_PATH.empty()) {
         Constant::ASR_BASE_PATH = jstring2charArray(env, basePath);
     }
-    Constant::of = new ofstream(Constant::ASR_BASE_PATH + "/log.txt");
+        Constant::of = new ofstream(Constant::ASR_BASE_PATH + "/log.txt");
 
     *Constant::of << endl << sizeof(char);
     *Constant::of << endl << sizeof(short);
@@ -328,14 +328,14 @@ Java_com_weechan_asr_Analyze_injectBasePath(
 extern "C" {
 JNIEXPORT void JNICALL
 Java_com_weechan_asr_Analyze_analyze(JNIEnv *env, jclass klass, jstring jpath) {
-    //ÊäÈëWAVÎÄ¼þµØÖ·
+    //ï¿½ï¿½ï¿½ï¿½WAVï¿½Ä¼ï¿½ï¿½ï¿½Ö·
     string path = jstring2charArray(env, jpath);
     unsigned long wavdata_l;
     double *sample = NULL;
     sample = readwav(path, &wavdata_l);
     *Constant::of << path << endl << flush;
     *Constant::of << "wavdata_l: " << wavdata_l << endl << flush;
-    int frameNum = 1 + ceil((double(wavdata_l) - Win_Time * sampleRate) / hopStep);//¼ÆËãËùÓÐÑù±¾µãÒ»¹²ÓÐ¶àÉÙÖ¡
+    int frameNum = 1 + ceil((double(wavdata_l) - Win_Time * sampleRate) / hopStep);//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½Ö¡
     int frame_new = (ceil(frameNum / (maxlen / 2 * 1.0)) - 1) * maxlen;
     double **mfcc39 = new double *[frameNum];
 
@@ -362,7 +362,7 @@ Java_com_weechan_asr_Analyze_analyze(JNIEnv *env, jclass klass, jstring jpath) {
             xtest[i][j] = 0;
     }
     reshape(mfcc39, maxlen, dim, frameNum, xtest);
-    //ÊÍ·Å
+    //ï¿½Í·ï¿½
     for (int i = 0; i < frameNum; i++) {
         delete[] mfcc39[i];
     }
@@ -373,7 +373,7 @@ Java_com_weechan_asr_Analyze_analyze(JNIEnv *env, jclass klass, jstring jpath) {
     int *label = new int[frameNum];
 
     label = model(xtest, frameNum, frame_new, label);
-    //ÊÍ·Å
+    //ï¿½Í·ï¿½
     for (int i = 0; i < test_num; i++) {
         delete[] xtest[i];
     }
@@ -381,19 +381,19 @@ Java_com_weechan_asr_Analyze_analyze(JNIEnv *env, jclass klass, jstring jpath) {
 
     //10175ms
     for (int i = 0; i < 30; i++) {
-        cout << "µÚ" << i + 1 << "Ö¡:  " << label[i] << '\n';
+        cout << "ï¿½ï¿½" << i + 1 << "Ö¡:  " << label[i] << '\n';
     }
     //=================================
     cout << wavdata_l << endl;
 //	cout<<xtest[0][0];
-    vector<int> newlist;//Êä³öµÄÐòÁÐ
-    vector<int> pointlist;//¼ÇÂ¼Ã¿¸öÒôËØ´ÓµÚ¼¸¸ö²ÉÑùµã¿ªÊ¼
+    vector<int> newlist;//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    vector<int> pointlist;//ï¿½ï¿½Â¼Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½Ø´ÓµÚ¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ã¿ªÊ¼
     trimming(newlist, pointlist, label, frameNum, hopStep);
     //10611ms
 
     delete[]label;
     int phone_num = newlist.size();
-    //°ÑÊä³öÐ´µ½txtÎÄ¼þÖÐ
+    //ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½txtï¿½Ä¼ï¿½ï¿½ï¿½
     ofstream fileout(Constant::ASR_BASE_PATH + "/output.txt");
     for (int i = 0; i < phone_num; i++) {
         fileout << newlist[i] << ',';

@@ -186,33 +186,37 @@ void DCT(double **c, int frameNum) {
     //cout << "c[0][0] = " << c[0][0] << endl;
 }
 
-void computeMel(double **mel, int sampleRate, double *FFTSample, int frameNum, int frameSize) {
+void computeMel(double **mel, int sampleRate,double *FFTSample, int frameNum, int frameSize)
+{
 
-    double f[filterNum + 2] = {0.0, 2.0, 4.0, 7.0, 10.0, 13.0, 16.0, 20.0, 24.0, 29.0, 34.0, 40.0,
-                               46.0, 53.0, 60.0, 68.0, 77.0, 87.0, 97.0, 109.0, 122.0, 136.0, 152.0,
-                               169.0, 188.0, 209.0, 231.0, 256.0};
+    double f[filterNum+2]={0.0,2.0,4.0,7.0,10.0,13.0,16.0,20.0,24.0,29.0,34.0,40.0,46.0,53.0,60.0,68.0,77.0,87.0,97.0,109.0,122.0,136.0,152.0,169.0,188.0,209.0,231.0,256.0};
 
 
     //计算出每个三角滤波器的输出: 对每一帧进行处理
-    for (int i = 0; i < frameNum; i++) {
-        for (int j = 1; j <= filterNum; j++) {
+    for(int i = 0; i < frameNum; i++)
+    {
+        for(int j = 1; j <= filterNum; j++)
+        {
             double temp = 0;
-            for (int z = 0; z < frameSize; z++) {
-                if (z < f[j - 1])
+            for(int z = 0; z < frameSize; z++)
+            {
+                if(z < f[j - 1])
                     temp = 0;
-                else if (z >= f[j - 1] && z <= f[j])
+                else if(z >= f[j - 1] && z <= f[j])
                     temp = (z - f[j - 1]) / (f[j] - f[j - 1]);
-                else if (z >= f[j] && z <= f[j + 1])
+                else if(z >= f[j] && z <= f[j + 1])
                     temp = (f[j + 1] - z) / (f[j + 1] - f[j]);
-                else if (z > f[j + 1])
+                else if(z > f[j + 1])
                     temp = 0;
-                mel[i][j - 1 + 13] += FFTSample[i * frameSize + z] * temp;
+                mel[i][j - 1+13] += FFTSample[i * frameSize + z] * temp;
             }
         }
     }
 //    double meltest=mel[0][2];
-//	ofstream fileMel("D:\\CodeBlocks\\projext\\mfcc_zhou\\zhou\\bin\\Mel.dat");
-//	for(int j = 0; j < frameNum; j++)
+//    cout << "mel[0][13] = " << mel[0][13] << endl;
+//	ofstream fileMel("./Mel.dat");
+//	for(int j = 0; j < frameN
+//    um; j++)
 //    {
 //        for(int i = 0; i < filterNum; i++)
 //            fileMel << mel[j][i] << " ";
@@ -222,12 +226,17 @@ void computeMel(double **mel, int sampleRate, double *FFTSample, int frameNum, i
 //		fileMel << mel[0][i] << endl;
 
     //取对数
-    for (int i = 0; i < frameNum; i++) {
-        for (int j = 0; j < filterNum; j++) {
-            if (mel[i][j + 13] <= 0.00000000001 || mel[i][j + 13] >= 0.00000000001)
-                mel[i][j + 13] = log(mel[i][j + 13]);
+    for(int i = 0; i < frameNum; i++)
+    {
+        for(int j = 0; j < filterNum; j++)
+        {
+            if(mel[i][j+13] >= 0.00000000001)
+                mel[i][j+13] = log(mel[i][j+13]);
+            else
+                mel[i][j+13] = 2.22e-16;
         }
     }
+    //cout << "mel[0][13] = " << mel[0][13] << endl;
 }
 
 void writeToFile(int frameNum, int frameSize, double **DCT) {

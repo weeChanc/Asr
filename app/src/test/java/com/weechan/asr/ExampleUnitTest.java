@@ -2,6 +2,10 @@ package com.weechan.asr;
 
 import org.junit.Test;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.Socket;
 import java.util.ArrayList;
 
 /**
@@ -11,61 +15,13 @@ import java.util.ArrayList;
  */
 public class ExampleUnitTest {
     @Test
-    public void addition_isCorrect() {
-        int[] a = new int[]{4,5,1,6,2,7,3,8};
-        qs(a, 0, 6);
-        for (int i : a) {
-            System.out.println(i);
-        }
+    public void addition_isCorrect() throws IOException {
 
-        System.out.println(GetLeastNumbers_Solution(a,4));
+        Socket socket = new Socket("127.0,0,1", 1234);
+        BufferedReader bufferedReader =
+                new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        System.out.println(bufferedReader.readLine());
 
-    }
-
-    public ArrayList<Integer> GetLeastNumbers_Solution(int[] input, int k) {
-        if (input.length < k || input == null) return new ArrayList<>();
-        int index = partition(input, 0, input.length - 1);
-        int start = 0;
-        int end = input.length - 1;
-        while (index != k - 1) {
-            if (index > k - 1) {
-                end = index - 1;
-                index = partition(input, start, end);
-            }
-
-            if (index < k - 1) {
-                start = index + 1;
-                index = partition(input, start, end);
-            }
-        }
-        ArrayList<Integer> r = new ArrayList<>();
-        for (int i = 0; i < k; i++) {
-            r.add(input[i]);
-        }
-        return r;
-    }
-
-    public void qs(int[] input, int l, int r) {
-        if(l >= r ) return;
-        int mi = partition(input, l, r);
-        qs(input, l, mi - 1);
-        qs(input, mi + 1, r);
-    }
-
-    public int partition(int[] input, int l, int r) {
-        int space = input[l];
-        while (l < r) {
-            while (l < r && input[r] > space) {
-                r--;
-            }
-            input[l] = input[r];
-            while (l < r && input[l] <= space) {
-                l++;
-            }
-            input[r] = input[l];
-        }
-        input[l] = space;
-        return l;
     }
 
 }

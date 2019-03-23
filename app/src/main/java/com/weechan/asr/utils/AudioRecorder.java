@@ -111,8 +111,12 @@ public class AudioRecorder {
             return;
         }
         mState = ERROR;
+        if(mListener != null){
+            mListener.onStop();
+        }
         mListener = null;
         mAudioRecord.release();
+
     }
 
     public static List<Short> toShortArray(byte[] data, int pressRatio) {
@@ -159,6 +163,8 @@ public class AudioRecorder {
         void onDataAvaliable(byte[] data);
 
         void onPause();
+
+        void onStop();
     }
 
     /**
