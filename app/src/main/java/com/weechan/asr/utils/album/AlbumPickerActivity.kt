@@ -1,4 +1,4 @@
-package com.weechan.asr.utils
+package com.weechan.asr.utils.album
 
 import android.content.Intent
 import com.weechan.asr.utils.permission.PermissionCompatActivity

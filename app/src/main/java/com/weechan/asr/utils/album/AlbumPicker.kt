@@ -1,4 +1,4 @@
-package com.weechan.asr.utils
+package com.weechan.asr.utils.album
 
 import android.content.Intent
 import android.provider.MediaStore
@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import com.weechan.asr.utils.permission.Permission
+import com.weechan.asr.utils.other.showToast
 
 /**
  * Created by steve on 17-8-31.

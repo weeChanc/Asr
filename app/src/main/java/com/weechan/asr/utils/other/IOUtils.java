@@ -1,4 +1,4 @@
-package com.weechan.asr.utils;
+package com.weechan.asr.utils.other;
 
 import android.util.Log;
 

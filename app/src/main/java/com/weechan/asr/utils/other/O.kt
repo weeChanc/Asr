@@ -1,4 +1,4 @@
-package com.weechan.asr.utils
+package com.weechan.asr.utils.other
 
 import android.os.Handler
 import android.os.Looper
@@ -32,3 +32,5 @@ fun Any.showToast(msg: Any) {
 }
 
 fun Any.toast() = showToast(this)
+
+fun Any.toast(any : Any) = showToast(" $any"  )

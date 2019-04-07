@@ -1,11 +1,14 @@
-package com.weechan.asr
+package com.weechan.asr.data
 
 import android.util.SparseArray
+import com.weechan.asr.NotUsed
 import java.io.File
 
+@NotUsed
 data class PHN(val text : String , val spell : SparseArray<String>){
     companion object {
 
+        @NotUsed
         fun readPHN(path: String): SparseArray<String> {
             val result = SparseArray<String>()
             val br = File(path)
@@ -19,6 +22,7 @@ data class PHN(val text : String , val spell : SparseArray<String>){
             return result
         }
 
+        @NotUsed
         public fun readAllPHN(path: String): List<PHN> {
             return File(path)
                     .listFiles()
@@ -29,11 +33,9 @@ data class PHN(val text : String , val spell : SparseArray<String>){
                         val spell = readPHN(it);
                         val file = "${it.substring(0,it.length-3)}TXT"
                         val text = File(file).bufferedReader().readLine()
-                        return@map PHN(text,spell)
+                        return@map PHN(text, spell)
                     }
         }
-
-
 
     }
 }

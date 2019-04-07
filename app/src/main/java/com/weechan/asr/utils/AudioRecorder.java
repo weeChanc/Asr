@@ -5,8 +5,7 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.util.Log;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -26,7 +25,6 @@ import static android.media.AudioRecord.STATE_INITIALIZED;
 public class AudioRecorder {
 
     private static AudioRecorder INSTANT;
-    private static int sampleRate = 16000;
 
     public static AudioRecorder getInstant() {
         if (INSTANT == null) {
@@ -44,13 +42,15 @@ public class AudioRecorder {
         super();
     }
 
+    private static int sampleRate = 16000;
     private int minBuffSize = AudioRecord.getMinBufferSize(sampleRate,
             AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
-
     private AudioRecord mAudioRecord = null;
-
-    private int mState = ERROR;
+    private volatile int mState = ERROR;
     private Listener mListener;
+
+    //为了避免装箱就泛型不要byte了
+    private List<byte[]> buff = new ArrayList<>();
 
     //就绪或录制中
     private static int READY = 2;
@@ -58,6 +58,10 @@ public class AudioRecorder {
     private static int PAUSE = 3;
     //未初始化或已被释放
     private static int ERROR = -1;
+
+    public boolean isRecording() {
+        return mState == READY;
+    }
 
     //开始或继续录音,listener为空,就使用之前的listener,否则使用新的listener
     public void startRecord(Listener listener) {
@@ -87,6 +91,7 @@ public class AudioRecorder {
 
         //唤醒线程进行录制
         synchronized (mReadDataThread) {
+            buff.clear();
             mReadDataThread.notify();
         }
 
@@ -105,18 +110,23 @@ public class AudioRecorder {
 
     }
 
-    public void stop() {
+    /**
+     *
+     * @return 返回开始到结束的那一段byte数组
+     */
+    public List<byte[]> stop() {
         if (mState == ERROR) {
             Log.i(getClass().getSimpleName(), "已经结束录制了!!!");
-            return;
+            return null;
         }
         mState = ERROR;
-        if(mListener != null){
+        if (mListener != null) {
             mListener.onStop();
         }
+
         mListener = null;
         mAudioRecord.release();
-
+        return new ArrayList<>(buff);
     }
 
     public static List<Short> toShortArray(byte[] data, int pressRatio) {
@@ -138,23 +148,27 @@ public class AudioRecorder {
             byte[] buf = new byte[minBuffSize];
             while (true) {
 
-                synchronized (this) {
-                    //不是就绪的时候锁住当前线程,等待唤醒
-                    if (mState != READY) {
-                        try {
-                            this.wait();
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
+                //不是就绪的时候锁住当前线程,等待唤醒
+                if (mState != READY) {
+                    synchronized (this) {
+                        if (mState != READY) {
+                            try {
+//                                buff.clear();
+                                this.wait();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
                         }
                     }
                 }
-
-
                 read = mAudioRecord.read(buf, 0, minBuffSize);
+                buff.add(buf);
                 if (read >= AudioRecord.SUCCESS) {
                     if (mListener != null)
-                        mListener.onDataAvaliable(Arrays.copyOf(buf, read));
+                        mListener.onDataAvaliable(buf);
                 }
+
+
             }
         }
     };
@@ -169,62 +183,31 @@ public class AudioRecorder {
 
     /**
      * PCM文件转WAV文件
-     *
-     * @param inPcmFilePath  输入PCM文件路径
-     * @param outWavFilePath 输出WAV文件路径
      * @param sampleRate     采样率，例如15000
      * @param channels       声道数 单声道：1或双声道：2
      * @param bitNum         采样位数，8或16
      */
-    public static void convertPcmToWav(String inPcmFilePath, String outWavFilePath, int sampleRate,
-                                       int channels, int bitNum) {
-        FileInputStream in = null;
-        FileOutputStream out = null;
-        byte[] data = new byte[1024];
-
+    public static byte[] convertPcmToWav(byte[] in, int sampleRate,
+                                         int channels, int bitNum) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             //采样字节byte率
             long byteRate = sampleRate * channels * bitNum / 8;
-
-            in = new FileInputStream(inPcmFilePath);
-            out = new FileOutputStream(outWavFilePath);
-
             //PCM文件大小
-            long totalAudioLen = in.getChannel().size();
-
+            long totalAudioLen = in.length;
             //总大小，由于不包括RIFF和WAV，所以是44 - 8 = 36，在加上PCM文件大小
             long totalDataLen = totalAudioLen + 36;
-
-            writeWaveFileHeader(out, totalAudioLen, totalDataLen, sampleRate, channels, byteRate);
-
-            int length = 0;
-            while ((length = in.read(data)) > 0) {
-                out.write(data, 0, length);
-            }
+            byte[] header = writeWaveFileHeader(totalAudioLen, totalDataLen, sampleRate, channels, byteRate);
+            out.write(header);
+            out.write(in);
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            if (in != null) {
-                try {
-                    in.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (out != null) {
-                try {
-                    out.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
         }
+        return out.toByteArray();
     }
 
     /**
-     * 输出WAV文件
-     *
-     * @param out           WAV输出文件流
+     * 输出WAV头
      * @param totalAudioLen 整个音频PCM数据大小
      * @param totalDataLen  整个数据大小
      * @param sampleRate    采样率
@@ -232,8 +215,8 @@ public class AudioRecorder {
      * @param byteRate      采样字节byte率
      * @throws IOException
      */
-    private static void writeWaveFileHeader(FileOutputStream out, long totalAudioLen,
-                                            long totalDataLen, int sampleRate, int channels, long byteRate) throws IOException {
+    private static byte[] writeWaveFileHeader(long totalAudioLen,
+                                              long totalDataLen, int sampleRate, int channels, long byteRate) throws IOException {
         byte[] header = new byte[44];
         header[0] = 'R'; // RIFF
         header[1] = 'I';
@@ -288,7 +271,7 @@ public class AudioRecorder {
         header[41] = (byte) ((totalAudioLen >> 8) & 0xff);
         header[42] = (byte) ((totalAudioLen >> 16) & 0xff);
         header[43] = (byte) ((totalAudioLen >> 24) & 0xff);
-        out.write(header, 0, 44);
+        return header;
     }
 
 }
