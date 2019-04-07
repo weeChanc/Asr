@@ -2,6 +2,7 @@ package com.weechan.asr
 
 import android.annotation.SuppressLint
 import android.graphics.Color
+import android.os.Environment
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.TextPaint
@@ -35,6 +36,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.anko.indeterminateProgressDialog
 import org.jetbrains.anko.progressDialog
 import java.io.ByteArrayInputStream
+import java.io.FileOutputStream
 
 
 class Adaptee(internal var sources: List<SoundSource>) : RecyclerView.Adapter<Adaptee.SoundHolder>() {
@@ -63,7 +65,7 @@ class Adaptee(internal var sources: List<SoundSource>) : RecyclerView.Adapter<Ad
 
                         override fun onStop() {}
                     })
-                    MotionEvent.ACTION_UP -> {
+                    MotionEvent.ACTION_UP , MotionEvent.ACTION_CANCEL -> {
                         GlobalScope.launch(Dispatchers.Main) {
                             val dialog = viewGroup.context.indeterminateProgressDialog(message = "识别中...", title = "请稍等")
                             val req = async {
@@ -72,18 +74,31 @@ class Adaptee(internal var sources: List<SoundSource>) : RecyclerView.Adapter<Ad
                                 for (aByte in bytes!!) {
                                     os.write(aByte)
                                 }
+
+                                val fos = FileOutputStream(Environment.getExternalStorageDirectory().absolutePath+"/output.pcm")
+                                bytes.forEach { fos.write(it) }
+                                fos.flush();fos.close();
+
                                 val wav = AudioRecorder.convertPcmToWav(os.toByteArray(), 16000, 1, 16)
+                                AudioRecorder.convertPcmToWav(Environment.getExternalStorageDirectory().absolutePath+"/output.pcm",
+                                        Environment.getExternalStorageDirectory().absolutePath+"/output.wav",16000,1,16)
+
                                 return@async sources[holder.adapterPosition].run {
                                     SoundModel.request(wav, File(phn), File(wrd))
                                 }
                             }
 
                             val resp = req.await()
-                            sources[holder.adapterPosition].sentence.words.filterIndexed { index, word -> resp.data.err.contains(index) }
-                                    .forEachIndexed { index,word->
-                                        this@Adaptee.notifyItemChanged(index)
-                                        word.score = 0
-                                    }
+                            if(resp.code == 200){
+                                sources[holder.adapterPosition].sentence.words.filterIndexed { index, word -> resp.data.err.contains(index) }
+                                        .forEachIndexed { index,word->
+                                            this@Adaptee.notifyItemChanged(index)
+                                            word.score = 0
+                                        }
+                            }else{
+                                "服务器解析错误".toast()
+                            }
+
                             dialog.dismiss()
 
                         }
@@ -169,7 +184,6 @@ class Adaptee(internal var sources: List<SoundSource>) : RecyclerView.Adapter<Ad
     }
 
     companion object {
-
         val TYPE_PRE = 0
         val TYPE_NEW = 1
     }

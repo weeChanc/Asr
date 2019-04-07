@@ -2,6 +2,8 @@ package com.weechan.asr;
 
 import android.app.Application;
 
+import com.tencent.bugly.crashreport.CrashReport;
+
 /**
  * @author 214652773@qq.com
  * @user c

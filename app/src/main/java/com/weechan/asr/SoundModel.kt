@@ -49,7 +49,7 @@ class SoundModel {
     lateinit var sources: List<SoundSource>
 
     fun init() {
-        IOUtils.extraFile(App.app.assets.open("model.zip"), File(App.app.filesDir, "model"))
+//        IOUtils.extraFile(App.app.assets.open("model.zip"), File(App.app.filesDir, "model"))
         IOUtils.extraFile(App.app.assets.open("testdata.zip"), File(App.app.filesDir, "testdata"))
         File(App.app.filesDir, "sound-asr").mkdir()
         sources = SoundSource.readAllSoundSource(File(App.app.filesDir, "testdata").absolutePath)
