@@ -18,7 +18,6 @@ class MainActivity : AlbumPickerActivity() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: Adaptee
-    private lateinit var fab: FloatingActionButton
     private lateinit var model: SoundModel
 
 
@@ -27,19 +26,6 @@ class MainActivity : AlbumPickerActivity() {
         setContentView(R.layout.activity_main)
 
         init()
-    }
-
-    private fun startRecord() {
-//        po.showAtLocation(findViewById(R.id.container), Gravity.CENTER, 0, 0)
-//        model.start { popupWave.setWaves(model.getDatas(), true) }
-    }
-
-    private fun stopRecord() {
-//        adapter.addWavesInActivePos(model.getDatas())
-        adapter.notifyDataSetChanged()
-        model.stop()
-//        popupWave.setWaves(null, true)
-//        po.dismiss()
     }
 
     fun init() {
@@ -73,11 +59,5 @@ class MainActivity : AlbumPickerActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
     }
-
-    private fun dp2px(dpValue: Float): Int {
-        val scale = resources.displayMetrics.density
-        return (dpValue * scale + 0.5f).toInt()
-    }
-
 
 }

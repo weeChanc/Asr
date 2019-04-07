@@ -200,6 +200,7 @@ public class AudioRecorder {
             byte[] header = writeWaveFileHeader(totalAudioLen, totalDataLen, sampleRate, channels, byteRate);
             out.write(header);
             out.write(in);
+            System.out.println(out.size());
         } catch (Exception e) {
             e.printStackTrace();
         }

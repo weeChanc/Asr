@@ -1,11 +1,13 @@
 package com.weechan.asr
 
 import android.annotation.SuppressLint
+import android.graphics.Color
 import android.text.Spannable
 import android.text.SpannableString
-import android.text.SpannableStringBuilder
+import android.text.TextPaint
 import android.text.method.LinkMovementMethod
 import android.text.style.ClickableSpan
+import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.MotionEvent.ACTION_UP
@@ -19,22 +21,25 @@ import com.weechan.asr.data.SoundSource
 import com.weechan.asr.net.*
 import com.weechan.asr.utils.AudioRecorder
 import com.weechan.asr.utils.MusicPlayer
-import com.weechan.asr.utils.other.O
 import com.weechan.asr.utils.other.toast
-import okhttp3.*
 import java.io.ByteArrayOutputStream
-import java.io.IOException
 import java.io.File
+import com.loopj.android.http.AsyncHttpClient
+import com.loopj.android.http.AsyncHttpResponseHandler
+import com.loopj.android.http.RequestParams
+import cz.msebera.android.httpclient.Header
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import org.jetbrains.anko.indeterminateProgressDialog
+import org.jetbrains.anko.progressDialog
+import java.io.ByteArrayInputStream
 
 
-class Adaptee(internal var records: List<SoundSource>) : RecyclerView.Adapter<Adaptee.SoundHolder>() {
+class Adaptee(internal var sources: List<SoundSource>) : RecyclerView.Adapter<Adaptee.SoundHolder>() {
 
     private var checkIndex = 0
-
-    //    public void addWavesInActivePos(List<Short> waves){
-    //        sources.get(checkIndex).setWaves(waves);
-    //        notifyItemChanged(checkIndex);
-    //    }
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreateViewHolder(viewGroup: ViewGroup, i: Int): SoundHolder {
@@ -48,8 +53,7 @@ class Adaptee(internal var records: List<SoundSource>) : RecyclerView.Adapter<Ad
         val holder = SoundHolder(view, i)
 
         if (holder.play != null) {
-            holder.play!!.setOnClickListener { MusicPlayer.play(records[holder.adapterPosition].wav) }
-
+            holder.play!!.setOnClickListener { MusicPlayer.play(sources[holder.adapterPosition].wav) }
             holder.record!!.setOnTouchListener { v, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> AudioRecorder.getInstant().startRecord(object : AudioRecorder.Listener {
@@ -59,46 +63,32 @@ class Adaptee(internal var records: List<SoundSource>) : RecyclerView.Adapter<Ad
 
                         override fun onStop() {}
                     })
-                    ACTION_UP -> {
-                        val bytes = AudioRecorder.getInstant().stop()
-                        toast(bytes.size)
-                        val os = ByteArrayOutputStream()
-                        for (aByte in bytes!!) {
-                            os.write(aByte)
+                    MotionEvent.ACTION_UP -> {
+                        GlobalScope.launch(Dispatchers.Main) {
+                            val dialog = viewGroup.context.indeterminateProgressDialog(message = "识别中...", title = "请稍等")
+                            val req = async {
+                                val bytes = AudioRecorder.getInstant().stop()
+                                val os = ByteArrayOutputStream()
+                                for (aByte in bytes!!) {
+                                    os.write(aByte)
+                                }
+                                val wav = AudioRecorder.convertPcmToWav(os.toByteArray(), 16000, 1, 16)
+                                return@async sources[holder.adapterPosition].run {
+                                    SoundModel.request(wav, File(phn), File(wrd))
+                                }
+                            }
+
+                            val resp = req.await()
+                            sources[holder.adapterPosition].sentence.words.filterIndexed { index, word -> resp.data.err.contains(index) }
+                                    .forEachIndexed { index,word->
+                                        this@Adaptee.notifyItemChanged(index)
+                                        word.score = 0
+                                    }
+                            dialog.dismiss()
+
                         }
-                        val wav = AudioRecorder.convertPcmToWav(os.toByteArray(), 16000, 2, 16)
-                        val builder = MultipartBody.Builder()
-                        builder.addFormDataPart("wav", "a.wav",
-                                RequestBody.create(MediaType.parse("audio/*"), wav))
-                        builder.addFormDataPart("phn", "b.phn",
-                                RequestBody.create(MediaType.parse("plain/text"), File(records[holder.adapterPosition].phn)))
-                        builder.addFormDataPart("wrd", "c.wrd",
-                                RequestBody.create(MediaType.parse("plain/text"), File(records[holder.adapterPosition].wrd)))
-                        builder.addFormDataPart("stamp",System.currentTimeMillis().toString())
-                        val req = Request.Builder()
 
-                                .url(BASE_URL+"/calculate")
-                                .post(builder.build())
-                        OkClient.newCall(req.build()).enqueue(object : Callback {
-                            override fun onFailure(call: Call, e: IOException) {
-                                toast("failed")
-                            }
 
-                            override fun onResponse(call: Call, response: Response) {
-                                println(response.body()!!.string())
-//                                val resp = Gson().fromJson(response.body()!!.string(), MResposne::class.java)
-//                                O.mainThreadHandler.post {
-//                                    val errs = resp.data.err
-//                                    records[holder.adapterPosition].sentence.words.filterIndexed { index, _ ->
-//                                        errs.contains(index)
-//                                    }.forEach {
-//                                        it.score = 0;
-//                                    }
-//                                    this@Adaptee.notifyItemChanged(holder.adapterPosition)
-//                                }
-
-                            }
-                        })
                     }
                 }
 
@@ -121,22 +111,30 @@ class Adaptee(internal var records: List<SoundSource>) : RecyclerView.Adapter<Ad
     override fun onBindViewHolder(holder: SoundHolder, i: Int) {
         when (getItemViewType(holder.adapterPosition)) {
             TYPE_NEW -> run {
-                holder.page?.text = (holder.adapterPosition + 1).toString() + "/" + records.size
-                val ss = SpannableString(records[i].sentence.content)
+                holder.page?.text = (holder.adapterPosition + 1).toString() + "/" + sources.size
+                val ss = SpannableString(sources[i].sentence.content)
                 var start = 0;
-                records[i].sentence.words.forEachIndexed { index, word ->
+                sources[i].sentence.words.forEachIndexed { index, word ->
                     ss.setSpan(object : ClickableSpan() {
                         override fun onClick(widget: View) {
                             toast(word.content)
                         }
+
+                        override fun updateDrawState(ds: TextPaint) {
+                            ds.setUnderlineText(false); // set to false to remove underline
+                        }
                     }, start, start + word.content.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    if(word.score == 0 ){
+                        ss.setSpan(ForegroundColorSpan(Color.RED),start, start + word.content.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    }
                     start += word.content.length + 1
                 }
                 holder.title.text = ss
-                holder.title.setMovementMethod(LinkMovementMethod.getInstance())
+                holder.title.setAutoLinkMask(0)
+                holder.title.movementMethod = LinkMovementMethod.getInstance()
             }
             TYPE_PRE -> {
-                holder.title.text = records[i].sentence.content
+                holder.title.text = sources[i].sentence.content
             }
         }
 
@@ -147,7 +145,7 @@ class Adaptee(internal var records: List<SoundSource>) : RecyclerView.Adapter<Ad
     }
 
     override fun getItemCount(): Int {
-        return records.size
+        return sources.size
     }
 
     inner class SoundHolder(itemView: View, type: Int) : RecyclerView.ViewHolder(itemView) {

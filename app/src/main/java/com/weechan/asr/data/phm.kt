@@ -1,7 +1,7 @@
 package com.weechan.asr.data
 
 import android.util.SparseArray
-import com.weechan.asr.NotUsed
+import com.weechan.asr.anotation.NotUsed
 import java.io.File
 
 @NotUsed
@@ -40,3 +40,23 @@ data class PHN(val text : String , val spell : SparseArray<String>){
     }
 }
 
+//fun main(args: Array<String>) {
+//    val builder = MultipartBody.Builder()
+////    builder.addFormDataPart("wav", "a.wav",
+////            RequestBody.create(null, byteArrayOf(1)))
+////    builder.addFormDataPart("phn", "b.phn",
+////            RequestBody.create(null, byteArrayOf(1)))
+////    builder.addFormDataPart("wrd", "c.wrd",
+////            RequestBody.create(null, byteArrayOf(1)))
+////    builder.addFormDataPart("stamp",System.currentTimeMillis().toString())
+////
+////
+////    val form = FormBody.Builder().add("aa","bb").add("cc","dd")
+////    val req = Request.Builder()
+////            .url(BASE_URL +"/calculate")
+//////            .method("POST",form.build())
+////            .put(RequestBody.create(MediaType.parse("multipart/form-data"), byteArrayOf('a'.toByte())))
+////
+////    println(OkClient.newCall(req.build()).execute().body()?.string())
+//}
+//
