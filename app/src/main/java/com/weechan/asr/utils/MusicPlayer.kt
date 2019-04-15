@@ -7,18 +7,38 @@ import android.os.Environment
 import com.weechan.asr.App
 
 
-class MusicPlayer{
-    companion object {
-        val player = MediaPlayer()
+class MusicPlayer {
+    val player = MediaPlayer()
+    private var onComplete: MutableList<(() -> Unit)> = mutableListOf()
+    private var onStart: MutableList<(() -> Unit)> = mutableListOf()
+    var isPlaying: Boolean = false
+        get() = player.isPlaying
 
-        @Synchronized
-        fun play(path : String){
-            player.reset()
-            player.setDataSource(path)
-            player.prepareAsync()
-            player.setOnPreparedListener {
-                it.start()
-            }
+    fun addOnCompleteListener(block: (() -> Unit)) {
+        this.onComplete.add(block)
+    }
+
+    fun addOnStartListener(block: (() -> Unit)) {
+        onStart.add(block)
+    }
+
+    @Synchronized
+    fun play(path: String) {
+        player.reset()
+        player.setDataSource(path)
+        player.prepareAsync()
+        onStart.forEach { it.invoke() }
+        player.setOnPreparedListener {
+            it.start()
         }
+        player.setOnCompletionListener {
+            onComplete.forEach { it.invoke() }
+        }
+    }
+
+    @Synchronized
+    fun reset(){
+        player.reset()
+        onComplete.forEach { it.invoke() }
     }
 }
