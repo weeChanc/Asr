@@ -25,7 +25,7 @@ import kotlin.coroutines.suspendCoroutine
 class SoundModel {
 
     companion object {
-        val client = AsyncHttpClient(80)
+        val client = AsyncHttpClient(80).apply { setTimeout(20000) }
 
         suspend fun stopRecordAndFetch(phn: String, wrd: String): MResposne {
             val bytes = AudioRecorder.getInstant().stop()
@@ -56,7 +56,7 @@ class SoundModel {
                     }
 
                     override fun onFailure(statusCode: Int, headers: Array<out Header>?, responseBody: ByteArray?, error: Throwable?) {
-                        it.resume(MResposne(-1, error.toString(), Resp(mutableListOf(), mutableListOf())))
+                        it.resume(MResposne(-1, error.toString(), Resp(mutableListOf(), mutableListOf(), mutableListOf(), mutableListOf())))
                     }
                 })
             }

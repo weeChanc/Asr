@@ -5,11 +5,22 @@ import android.util.SparseArray
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.annotation.LayoutRes
 import androidx.recyclerview.widget.RecyclerView
 
 
-abstract class BaseAdapter<T>(private val data: List<MultiEntity<T>>) : RecyclerView.Adapter<BaseAdapter<T>.ViewHolder>() {
+abstract class BaseAdapter<T>(val data: List<MultiEntity<T>>) : RecyclerView.Adapter<BaseViewHolder<T>>() {
+
+    var context: Context? = null
+
+    init {
+        refreshIndex()
+    }
+
+    fun refreshIndex() {
+        data.forEachIndexed { index, entry ->
+            data.get(index).__index = index
+        }
+    }
 
     private fun <T> T?.ifNotNull(block: (self: T) -> Unit) {
         if (this != null) {
@@ -17,78 +28,74 @@ abstract class BaseAdapter<T>(private val data: List<MultiEntity<T>>) : Recycler
         }
     }
 
-    private fun List<MultiEntity<T>>.takeValidValue(pos: Int) = data.takeIf { pos >= headerSize && pos < headerSize + data.size }?.get(pos)
+    fun getVal(pos: Int) = data.takeIf { pos >= headerMap.size() && pos < headerMap.size() + data.size }?.get(pos)
 
+
+    private fun transformPosition(pos: Int): Int {
+        return pos - headerMap.size()
+    }
 
     private val map = SparseArray<Type<T>>()
-    private var headerSize = 0
-    private var footerSize = 0
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        println(map)
-        println(viewType)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseViewHolder<T> {
+
+        if (context == null) context = parent.context
+
         val view = LayoutInflater.from(parent.context).inflate(map.get(viewType).layoutId, parent, false);
-        val holder = ViewHolder(view, viewType)
+        val holder = BaseViewHolder(view, viewType, this)
+        onTypeViewHolderCreated(view, viewType, holder)
 
+        return holder
+    }
 
-        _globalItemLongClick.ifNotNull {
-            view.setOnLongClickListener { v ->
-                it.invoke(holder.adapterPosition, data.takeValidValue(holder.adapterPosition))
-                true
-            }
-        }
-        _globalItemClick?.ifNotNull { view.setOnClickListener { _ -> it.invoke(holder.adapterPosition, data.get(holder.adapterPosition)) } }
+    private fun onTypeViewHolderCreated(view: View, viewType: Int, holder: BaseViewHolder<T>) {
+
+        setUpGlobalItemClick(view, holder.adapterPosition)
 
         map.get(viewType).ifNotNull { type ->
 
-            type._onCreate?.invoke(holder)
+            type.onViewHolderCreated(holder, viewType);
 
             type._itemClick.ifNotNull {
                 view.setOnClickListener {
-                    type._itemClick?.invoke(view, holder.adapterPosition,
-                            data.takeValidValue(holder.adapterPosition))
+                    type._itemClick?.invoke(holder.adapterPosition, view,
+                            getVal(holder.adapterPosition))
                 }
             }
 
             type._itemLongClick.ifNotNull {
                 view.setOnClickListener {
                     type._itemLongClick?.invoke(holder.adapterPosition,
-                            data.takeValidValue(holder.adapterPosition))
+                            getVal(holder.adapterPosition))
                 }
             }
         }
-
-        return holder
     }
 
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+    private fun setUpGlobalItemClick(view: View, pos: Int) {
+        _globalItemLongClick.ifNotNull {
+            view.setOnLongClickListener { v ->
+                it.invoke(pos, getVal(pos))
+                true
+            }
+        }
+        _globalItemClick.ifNotNull {
+            view.setOnClickListener { _ -> it.invoke(pos, data.get(pos)) }
+        }
+    }
+
+
+    override fun onBindViewHolder(holder: BaseViewHolder<T>, position: Int) {
         val type = getItemViewType(holder.adapterPosition)
-        map.get(type)?._onBind?.invoke(holder, data.takeValidValue(holder.adapterPosition)?.entity)
-    }
-
-
-    inner class ViewHolder(itemView: View, val type: Int) : RecyclerView.ViewHolder(itemView) {
-        private val map = SparseArray<View>()
-        val context: Context = itemView.context
-        val entity: T
-            get() = data.get(adapterPosition).entity
-
-        val adapter: BaseAdapter<T>
-            get() = this@BaseAdapter
-
-        fun <T : View> getView(id: Int): T {
-            var view = map.get(id)
-            view = view ?: itemView.findViewById(id)
-            map.put(id, view)
-            return view as T
-        }
-
-
-        fun <T : View> Int.toView(): T {
-            return getView<T>(this) as T
+        map.get(type)?.let {
+            it.onBindViewHolder(holder)
+            val data = getVal(holder.adapterPosition)?.entity
+            if (data != null)
+                it.onBindViewHolder(holder, data)
         }
     }
+
 
     private var _globalItemLongClick: ((position: Int, data: MultiEntity<T>?) -> Unit)? = null
     private var _globalItemClick: ((position: Int, data: MultiEntity<T>?) -> Unit)? = null
@@ -98,36 +105,34 @@ abstract class BaseAdapter<T>(private val data: List<MultiEntity<T>>) : Recycler
     }
 
 
-    override fun getItemCount() = data.size + headerSize + footerSize
+    override fun getItemCount() = data.size + headerMap.size() + footerMap.size()
 
-    fun addType(type: Type<T>) {
-        map.put(type.typeId, type)
+
+    companion object {
+        @JvmStatic
+        private val HEADER_ITEM = 1
+        @JvmStatic
+        private val FOOTER_ITEM = 2
     }
-
 
     private val headerMap = SparseArray<Type<T>>()
     private val footerMap = SparseArray<Type<T>>()
-
-    fun addHeader(type: Type<T>) {
+    fun addType(type: Type<T>) {
         map.put(type.typeId, type)
-        headerMap.put(type.typeId, type)
-        headerSize++;
-    }
-
-    fun addFooter(type: Type<T>) {
-        map.put(type.typeId, type);
-        footerMap.put(type.typeId, type);
-        footerSize++;
+        if (type.__itemType__ == HEADER_ITEM) {
+            headerMap.put(type.typeId, type)
+        } else if (type.__itemType__ == FOOTER_ITEM) {
+            footerMap.put(type.typeId, type)
+        }
     }
 
     override fun getItemViewType(position: Int): Int {
-        if (position < headerSize) {
+        if (position < headerMap.size()) {
             return headerMap.valueAt(position).typeId;
-        } else if (position >= data.size + headerSize) {
-            return footerMap.valueAt(position - headerSize - data.size).typeId
+        } else if (position >= data.size + headerMap.size()) {
+            return footerMap.valueAt(position - headerMap.size() - data.size).typeId
         }
-        return data[position - headerSize].typeId
+        return data[position - headerMap.size()].typeId
     }
-
 
 }

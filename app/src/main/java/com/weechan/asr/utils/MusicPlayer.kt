@@ -8,7 +8,13 @@ import com.weechan.asr.App
 
 
 class MusicPlayer {
-    val player = MediaPlayer()
+
+    companion object {
+        private val player = MusicPlayer()
+        fun getInstant() = player
+    }
+
+    private val player = MediaPlayer()
     private var onComplete: MutableList<(() -> Unit)> = mutableListOf()
     private var onStart: MutableList<(() -> Unit)> = mutableListOf()
     var isPlaying: Boolean = false
